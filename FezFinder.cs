@@ -23,6 +23,7 @@ namespace FezGame.Mod.Installer {
                 Process p = processes[i];
                 
                 try {
+					Console.WriteLine("p: " + p.ProcessName);
                     if (!p.ProcessName.Contains("steam") || path != null) {
                         p.Dispose();
                         continue;
@@ -60,7 +61,7 @@ namespace FezGame.Mod.Installer {
             
             if (os.Contains("win")) {
                 //I think we're running in Windows right now...
-                path = Directory.GetParent(path).FullName; //PF/Steam[/steam.exe]
+                path = Directory.GetParent(path).Parent.FullName; //PF/Steam[/bin/steam.exe]
                 Console.WriteLine("Windows Steam main dir " + path);
                 
             } else if (os.Contains("mac") || os.Contains("osx")) {
