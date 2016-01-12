@@ -41,8 +41,6 @@ namespace FezGame.Mod.Installer {
         protected override void OnPaint(PaintEventArgs e) {
             Graphics g = e.Graphics;
             
-            g.TextRenderingHint = TextRenderingHint.SingleBitPerPixel;
-            
             g.FillRectangle(BrushProgress, 0, 0, (int) (e.ClipRectangle.Width * ((double) Value / (double) Maximum)), e.ClipRectangle.Height);
             
             SizeF textSize = g.MeasureString(Text, Font);
