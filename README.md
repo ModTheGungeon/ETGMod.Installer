@@ -1,4 +1,4 @@
-FEZMod.Installer
+FEZMod Installer
 ===================
 So... copying some files and running a .bat / .sh is not your thing?
 It's dangerous out there - take this!
