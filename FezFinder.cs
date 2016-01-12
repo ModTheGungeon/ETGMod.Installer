@@ -23,7 +23,6 @@ namespace FezGame.Mod.Installer {
                 Process p = processes[i];
                 
                 try {
-					Console.WriteLine("p: " + p.ProcessName);
                     if (!p.ProcessName.Contains("steam") || path != null) {
                         p.Dispose();
                         continue;

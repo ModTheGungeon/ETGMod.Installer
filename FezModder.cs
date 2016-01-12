@@ -179,13 +179,21 @@ namespace FezGame.Mod.Installer {
             DateTime timeStart = DateTime.Now;
             using (WebClient wc = new WebClient()) {
                 using (Stream s = wc.OpenRead(url)) {
-                    data = new byte[s.Length];
-                    
-                    long progressSize = s.Length;
+                    long sLength;
+					if (s.CanSeek) {
+						//Mono
+						sLength = s.Length;
+                    } else {
+						//.NET
+						sLength = getLength(url);
+                    }
+					data = new byte[sLength];
+
+					long progressSize = sLength;
                     int progressScale = 1;
                     while (progressSize > int.MaxValue) {
                         progressScale *= 10;
-                        progressSize = s.Length / progressScale;
+						progressSize = sLength / progressScale;
                     }
                     
                     ins.InitProgress("Downloading", (int) progressSize);
@@ -232,6 +240,16 @@ namespace FezGame.Mod.Installer {
             
             return data;
         }
+
+		private static long getLength(string url) {
+			HttpWebRequest request = (HttpWebRequest) WebRequest.Create(url);
+			request.UserAgent = "FEZMod Installer";
+			request.Method = "HEAD";
+
+			using (HttpWebResponse response = (HttpWebResponse) request.GetResponse()) {
+				return response.ContentLength;
+			}
+		}
         
         public static bool UnzipMod(this InstallerWindow ins, byte[] data) {
             using (MemoryStream ms = new MemoryStream(data, 0, data.Length, false, true)) {

@@ -59,11 +59,11 @@ namespace FezGame.Mod.Installer {
                 Console.WriteLine("Font " + i + ": " + pfc.Families[i]);
             }
             GlobalFont = new Font(pfc.Families[0], 8f);*/
-			BackgroundImage = LoadAsset<Image>("background");
-			BackgroundImageLayout = ImageLayout.Center;
+            BackgroundImage = LoadAsset<Image>("background");
+            BackgroundImageLayout = ImageLayout.Center;
             Icon = LoadAsset<Icon>("icons.main");
 
-			MinimumSize = Size = MaximumSize = BackgroundImage.Size + (Environment.OSVersion.Platform.ToString().ToLower().Contains("win") ? new Size(8, 8) : new Size());
+            MinimumSize = Size = MaximumSize = BackgroundImage.Size + (Environment.OSVersion.Platform.ToString().ToLower().Contains("win") ? new Size(8, 8) : new Size());
             
             Controls.Add(new Label() {
                 Bounds = new Rectangle(448, 338, 308, 16),
@@ -158,7 +158,7 @@ namespace FezGame.Mod.Installer {
                 Text = "Step 3: Install FEZMod",
                 Enabled = false
             });
-			InstallButton.Click += (object senderClick, EventArgs eClick) => Task.Run((Action) this.Install);
+            InstallButton.Click += (object senderClick, EventArgs eClick) => Task.Run((Action) this.Install);
             Controls.Add(UninstallButton = new Button() {
                 Bounds = new Rectangle(InstallButton.Bounds.X + InstallButton.Bounds.Width, InstallButton.Bounds.Y, 32, InstallButton.Bounds.Height),
                 Image = LoadAsset<Image>("icons.uninstall"),
@@ -329,7 +329,7 @@ namespace FezGame.Mod.Installer {
         public InstallerWindow Log(string s) {
             logScheduled.Add(s);
             if (logUpdateTask == null) {
-				logUpdateTask = Task.Run((Action) LogFlush);
+                logUpdateTask = Task.Run((Action) LogFlush);
             }
             return this;
         }
@@ -351,8 +351,8 @@ namespace FezGame.Mod.Installer {
             }
             Invoke(delegate() {
                 LogBox.Text += added;
-                LogBox.SelectionStart = 0;
-                LogBox.SelectionLength = LogBox.Text.Length;
+                LogBox.SelectionStart = LogBox.Text.Length;
+                LogBox.SelectionLength = 0;
                 LogBox.ScrollToCaret();
             });
             logUpdateTask = null;
@@ -360,9 +360,9 @@ namespace FezGame.Mod.Installer {
         
         private void onHandleCreated(object sender, EventArgs e) {
             HandleCreated -= onHandleCreated;
-			Task.Run((Action) FezFinder.FindFEZ);
-			Task.Run((Action) DownloadStableVersionList);
-			Task.Run((Action) DownloadNightlyVersionList);
+            Task.Run((Action) FezFinder.FindFEZ);
+            Task.Run((Action) DownloadStableVersionList);
+            Task.Run((Action) DownloadNightlyVersionList);
         }
 
         [STAThread]
@@ -375,7 +375,7 @@ namespace FezGame.Mod.Installer {
                 Console.WriteLine("Asset " + i + ": " + manifestResourceNames[i]);
             }
 
-			Application.VisualStyleState = VisualStyleState.ClientAndNonClientAreasEnabled;
+            Application.VisualStyleState = VisualStyleState.ClientAndNonClientAreasEnabled;
             Instance = new InstallerWindow();
             Instance.HandleCreated += Instance.onHandleCreated;
             
