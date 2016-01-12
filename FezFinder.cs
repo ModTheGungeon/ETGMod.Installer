@@ -77,7 +77,12 @@ namespace FezGame.Mod.Installer {
                 return null;
             }
             
-            path = Path.Combine(path, "SteamApps"); //PF/Steam/SteamApps //~/.local/share/Steam/SteamApps
+            //PF/Steam/SteamApps //~/.local/share/Steam/SteamApps
+            if (Directory.Exists(Path.Combine(path, "SteamApps"))) {
+                path = Path.Combine(path, "SteamApps");
+            } else {
+                path = Path.Combine(path, "steamapps");
+            }
             path = Path.Combine(path, "common"); //SA/common
             
             path = Path.Combine(path, "FEZ");
