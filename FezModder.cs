@@ -52,11 +52,6 @@ namespace FezGame.Mod.Installer {
                 ins.LogLine("Can't you read? Manual FEZMod builds \"WIP\"!");
                 return;
                 
-            } else {
-                ins.LogLine("How the~ this isn't even implemented yet!");
-                //TODO add 3rd tab - manual assembly selection
-                //TODO handle manual assemblies
-                
             }
             
             ins.LogLine();

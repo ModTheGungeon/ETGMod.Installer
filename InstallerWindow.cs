@@ -31,6 +31,8 @@ namespace FezGame.Mod.Installer {
         public TabControl VersionTabs;
         public ListBox StableVersionList;
         public ListBox NightlyVersionList;
+        public TextBox ManualPathBox;
+        public Button ManualPathButton;
         public Button InstallButton;
         public Button UninstallButton;
         public CustomProgress Progress;
@@ -59,6 +61,14 @@ namespace FezGame.Mod.Installer {
                 Console.WriteLine("Font " + i + ": " + pfc.Families[i]);
             }
             GlobalFont = new Font(pfc.Families[0], 8f);*/
+            AllowDrop = true;
+            DragDrop += onDragDrop;
+            DragEnter += delegate(object sender, DragEventArgs e) {
+                if (e.Data.GetDataPresent(DataFormats.FileDrop) && VersionTabs.Enabled) {
+                    e.Effect = DragDropEffects.Copy;
+                    VersionTabs.SelectedIndex = 2;
+                }
+            };
             BackgroundImage = LoadAsset<Image>("background");
             BackgroundImageLayout = ImageLayout.Center;
             Icon = LoadAsset<Icon>("icons.main");
@@ -188,10 +198,48 @@ namespace FezGame.Mod.Installer {
             });
             
             VersionTabs.TabPages.Add(new TabPage("Manual"));
-            VersionTabs.TabPages[2].Controls.Add(new Label() {
-                Dock = DockStyle.Fill,
-                Text = "WIP."
+            Panel manualPanel;
+            VersionTabs.TabPages[2].Controls.Add(manualPanel = new Panel() {
+                Dock = DockStyle.Fill
             });
+            manualPanel.Controls.Add(new Label() {
+                Bounds = new Rectangle(0, VersionTabs.Height - 24 - 24, VersionTabs.Width - 8, 24),
+                Text = "WIP.",
+                TextAlign = ContentAlignment.MiddleCenter
+            });
+            manualPanel.Controls.Add(new Label() {
+                Bounds = new Rectangle(0, 24, VersionTabs.Width - 8, 24),
+                Text = "or drag-and-drop a folder / .zip here",
+                TextAlign = ContentAlignment.MiddleCenter
+            });
+            manualPanel.Controls.Add(ManualPathBox = new TextBox() {
+                Bounds = new Rectangle(0, 0, VersionTabs.Width - 32 - 8, 24),
+                ReadOnly = true
+            });
+            manualPanel.Controls.Add(ManualPathButton = new Button() {
+                Bounds = new Rectangle(ManualPathBox.Bounds.X + ManualPathBox.Bounds.Width, ManualPathBox.Bounds.Y, 32, ManualPathBox.Bounds.Height),
+                Image = LoadAsset<Image>("icons.open"),
+                ImageAlign = ContentAlignment.MiddleCenter
+            });
+            ManualPathButton.Click += delegate(object senderClick, EventArgs eClick) {
+                if (OpenFileDialog == null) {
+                    OpenFileDialog = new OpenFileDialog() {
+                        Title = "Select FEZMod ZIP",
+                        AutoUpgradeEnabled = true,
+                        CheckFileExists = true,
+                        CheckPathExists = true,
+                        ValidateNames = true,
+                        Multiselect = false,
+                        ShowReadOnly = false,
+                        Filter = "FEZMod ZIP|*.zip|All files|*.*",
+                        FilterIndex = 0
+                    };
+                    OpenFileDialog.FileOk +=
+                        (object senderFileOk, CancelEventArgs eFileOk) => ManualPathBox.Text = OpenFileDialog.FileNames[0];
+                }
+
+                OpenFileDialog.ShowDialog(this);
+            };
         }
         
         public InstallerWindow SetMainEnabled(bool enabled) {
@@ -216,16 +264,13 @@ namespace FezGame.Mod.Installer {
             try {
                 StableVersions = VersionHelper.GetStableVersions();
             } catch (Exception e) {
-                Console.WriteLine(e);
                 StableVersions = null;
-                string[] lines = e.ToString().Split('\n');
+                LogLine("Something went horribly wrong:");
+                LogLine(e.ToString());
                 Invoke(delegate() {
                     StableVersionList.BeginUpdate();
                     StableVersionList.Items.Clear();
-                    StableVersionList.Items.Add("Something went horribly wrong:");
-                    for (int i = 0; i < lines.Length; i++) {
-                        StableVersionList.Items.Add(lines[i]);
-                    }
+                    StableVersionList.Items.Add("Something went wrong - see the log.");
                     StableVersionList.EndUpdate();
                 });
                 return;
@@ -252,16 +297,13 @@ namespace FezGame.Mod.Installer {
             try {
                 NightlyVersions = VersionHelper.GetNightlyVersions();
             } catch (Exception e) {
-                Console.WriteLine(e);
                 NightlyVersions = null;
-                string[] lines = e.ToString().Split('\n');
+                LogLine("Something went horribly wrong:");
+                LogLine(e.ToString());
                 Invoke(delegate() {
                     NightlyVersionList.BeginUpdate();
                     NightlyVersionList.Items.Clear();
-                    NightlyVersionList.Items.Add("Something went horribly wrong:");
-                    for (int i = 0; i < lines.Length; i++) {
-                        NightlyVersionList.Items.Add(lines[i]);
-                    }
+                    NightlyVersionList.Items.Add("Something went wrong - see the log.");
                     NightlyVersionList.EndUpdate();
                 });
                 return;
@@ -350,6 +392,7 @@ namespace FezGame.Mod.Installer {
                 logScheduled.RemoveAt(0);
             }
             Invoke(delegate() {
+                LogBox.Visible = true;
                 LogBox.Text += added;
                 LogBox.SelectionStart = LogBox.Text.Length;
                 LogBox.SelectionLength = 0;
@@ -363,6 +406,13 @@ namespace FezGame.Mod.Installer {
             Task.Run((Action) FezFinder.FindFEZ);
             Task.Run((Action) DownloadStableVersionList);
             Task.Run((Action) DownloadNightlyVersionList);
+        }
+
+        private void onDragDrop(object sender, DragEventArgs e) {
+            string[] files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (files != null && 0 < files.Length && Directory.Exists(files[0]) || files[0].ToLower().EndsWith(".zip")) {
+                ManualPathBox.Text = files[0];
+            }
         }
 
         [STAThread]
