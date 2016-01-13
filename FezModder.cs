@@ -49,9 +49,32 @@ namespace FezGame.Mod.Installer {
                 }
                 
             } else if (ins.VersionTabs.SelectedIndex == 2) {
-                ins.LogLine("Can't you read? Manual FEZMod builds \"WIP\"!");
-                return;
-                
+                string path = ins.ManualPathBox.Text;
+
+                if (path.ToLower().EndsWith(".zip")) {
+                    ins.Log("FEZMod Manual ZIP");
+                    if (!ins.UnzipMod(File.OpenRead(path))) {
+                        return;
+                    }
+                } else {
+                    ins.Log("FEZMod Manual Folder");
+
+                    string pathFez = ins.ExeMod.Dir.FullName;
+                    string[] files = Directory.GetFiles(path);
+                    ins.InitProgress("Copying FEZMod", files.Length);
+                    for (int i = 0; i < files.Length; i++) {
+                        string file = Path.GetFileName(files[i]);
+                        if (!file.Contains(".mm.")) {
+                            ins.SetProgress("Skipping: " + file, i);
+                            continue;
+                        }
+                        ins.Log("Copying: ").LogLine(file);
+                        ins.SetProgress("Copying: " + file, i);
+                        string origPath = Path.Combine(pathFez, file);
+                        File.Copy(files[i], origPath, true);
+                    }
+                    ins.EndProgress("Copying FEZMod complete.");
+                }
             }
             
             ins.LogLine();
@@ -154,7 +177,7 @@ namespace FezGame.Mod.Installer {
             for (int i = 0; i < files.Length; i++) {
                 string file = Path.GetFileName(files[i]);
                 ins.Log("Reverting: ").LogLine(file);
-                ins.InitProgress("Reverting: " + file, i);
+                ins.SetProgress("Reverting: " + file, i);
                 string origPath = Path.Combine(pathFez, file);
                 File.Delete(origPath);
                 File.Move(files[i], origPath);

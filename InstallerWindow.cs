@@ -203,11 +203,6 @@ namespace FezGame.Mod.Installer {
                 Dock = DockStyle.Fill
             });
             manualPanel.Controls.Add(new Label() {
-                Bounds = new Rectangle(0, VersionTabs.Height - 24 - 24, VersionTabs.Width - 8, 24),
-                Text = "WIP.",
-                TextAlign = ContentAlignment.MiddleCenter
-            });
-            manualPanel.Controls.Add(new Label() {
                 Bounds = new Rectangle(0, 24, VersionTabs.Width - 8, 24),
                 Text = "or drag-and-drop a folder / .zip here",
                 TextAlign = ContentAlignment.MiddleCenter
