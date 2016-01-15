@@ -385,10 +385,15 @@ namespace FezGame.Mod.Installer {
         
         public static void Mod(this InstallerWindow ins) {
             ins.ExeMod.Out = ins.ExeMod.In;
+            //We need to reload the FEZ.exe dependencies here.
+            //As they've been patched, FEZ.exe will otherwise refer to the .mm assemblies.
+            ins.ExeMod.Module = null;
+            ins.ExeMod.Dependencies.Clear();
+
             //ins.ExeMod.Logger = (string s) => ins.LogLine(s);
             //TODO log to file
             try {
-                ins.ExeMod.AutoPatch(false, true);
+                ins.ExeMod.AutoPatch(true, true);
             } catch (Exception e) {
                 ins.LogLine(e.ToString());
             }
