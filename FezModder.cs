@@ -52,12 +52,12 @@ namespace FezGame.Mod.Installer {
                 string path = ins.ManualPathBox.Text;
 
                 if (path.ToLower().EndsWith(".zip")) {
-                    ins.Log("FEZMod Manual ZIP");
+                    ins.LogLine("FEZMod Manual ZIP");
                     if (!ins.UnzipMod(File.OpenRead(path))) {
                         return;
                     }
                 } else {
-                    ins.Log("FEZMod Manual Folder");
+                    ins.LogLine("FEZMod Manual Folder");
 
                     string pathFez = ins.ExeMod.Dir.FullName;
                     string[] files = Directory.GetFiles(path);
