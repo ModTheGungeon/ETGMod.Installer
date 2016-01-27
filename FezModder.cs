@@ -92,18 +92,24 @@ namespace FezGame.Mod.Installer {
             ins.LogLine("Modding Common.dll").InitProgress("Modding Common.dll", 5);
             ins.LogLine("Common.dll is not that huge - not much to say here.");
             ins.LogLine();
-            ins.Mod("Common.dll");
+            if (!ins.Mod("Common.dll")) {
+                return;
+            }
             
             ins.LogLine("Modding EasyStorage.dll").SetProgress("Modding EasyStorage.dll", 1);
             ins.LogLine("EasyStorage.dll also isn't huge - most probably Steam and Android stuff.");
             ins.LogLine();
-            ins.Mod("EasyStorage.dll");
+            if (!ins.Mod("EasyStorage.dll")) {
+                return;
+            }
             
             if (monoGame) {
                 ins.LogLine("Modding MonoGame.Framework.dll").SetProgress("Modding MonoGame.Framework.dll", 2);
                 ins.LogLine("Wait... where's FNA? Well, I guess you're using old FEZ.");
                 ins.LogLine();
-                ins.Mod("MonoGame.Framework.dll");
+                if (!ins.Mod("MonoGame.Framework.dll")) {
+                    return;
+                }
             }
             if (fna) {
                 ins.LogLine("Modding FNA.dll").SetProgress("Modding FNA.dll", 2);
@@ -112,7 +118,9 @@ namespace FezGame.Mod.Installer {
                 ins.LogLine("FNA is the \"framework\" below FEZ and powering some other games, too.");
                 ins.LogLine("It replaces MonoGame in FEZ 1.12+.");
                 ins.LogLine();
-                ins.Mod("FNA.dll");
+                if (!ins.Mod("FNA.dll")) {
+                    return;
+                }
             }
             
             ins.LogLine("Modding FezEngine.dll").SetProgress("Modding FezEngine.dll", 3);
@@ -123,7 +131,9 @@ namespace FezGame.Mod.Installer {
             ins.LogLine("itself as mod to the FEZMod core. If it's complicated, don't worry:");
             ins.LogLine("This message simply means that modding FezEngine.dll takes time.");
             ins.LogLine();
-            ins.Mod("FezEngine.dll");
+            if (!ins.Mod("FezEngine.dll")) {
+                return;
+            }
             
             ins.LogLine("Modding FEZ.exe").SetProgress("Modding FEZ.exe", 4);
             ins.LogLine("Remember how long FezEngine.dll was? That was nothing!");
@@ -133,7 +143,9 @@ namespace FezGame.Mod.Installer {
             ins.LogLine("You won't see anything happening here, but don't panic:");
             ins.LogLine("If the installer crashes, an error log appears here.");
             ins.LogLine();
-            ins.Mod();
+            if (!ins.Mod()) {
+                return;
+            }
             
             ins.EndProgress("Modding complete.");
             ins.LogLine("Back with the coffee? We're done! Look at the top-right!");
@@ -179,7 +191,7 @@ namespace FezGame.Mod.Installer {
             string pathFez = ins.ExeMod.Dir.FullName;
             string pathBackup = Path.Combine(pathFez, "FEZModBackup");
             string[] files = Directory.GetFiles(pathBackup);
-            ins.InitProgress("Uninstalling FEZMod", files.Length);
+            ins.InitProgress("Uninstalling FEZMod", files.Length + 1);
             for (int i = 0; i < files.Length; i++) {
                 string file = Path.GetFileName(files[i]);
                 ins.Log("Reverting: ").LogLine(file);
@@ -188,7 +200,9 @@ namespace FezGame.Mod.Installer {
                 File.Delete(origPath);
                 File.Move(files[i], origPath);
             }
-            
+
+            ins.LogLine("Reloading FEZ.exe");
+            ins.SetProgress("Reloading FEZ.exe", files.Length);
             ins.ExeMod = new MonoMod.MonoMod(Path.Combine(pathFez, "FEZ.exe"));
             ins.ExeMod.Read(true);
             ins.EndProgress("Uninstalling complete.");
@@ -370,19 +384,21 @@ namespace FezGame.Mod.Installer {
             return true;
         }
         
-        public static void Mod(this InstallerWindow ins, string file) {
+        public static bool Mod(this InstallerWindow ins, string file) {
             MonoMod.MonoMod monomod = new MonoMod.MonoMod(Path.Combine(ins.ExeMod.Dir.FullName, file));
             monomod.Out = monomod.In;
             //monomod.Logger = (string s) => ins.LogLine(s);
             //TODO log to file
             try {
                 monomod.AutoPatch(true, true);
+                return true;
             } catch (Exception e) {
                 ins.LogLine(e.ToString());
+                return false;
             }
         }
         
-        public static void Mod(this InstallerWindow ins) {
+        public static bool Mod(this InstallerWindow ins) {
             ins.ExeMod.Out = ins.ExeMod.In;
             //We need to reload the FEZ.exe dependencies here.
             //As they've been patched, FEZ.exe will otherwise refer to the .mm assemblies.
@@ -393,8 +409,10 @@ namespace FezGame.Mod.Installer {
             //TODO log to file
             try {
                 ins.ExeMod.AutoPatch(true, true);
+                return true;
             } catch (Exception e) {
                 ins.LogLine(e.ToString());
+                return false;
             }
         }
         
