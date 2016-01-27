@@ -333,7 +333,7 @@ namespace FezGame.Mod.Installer {
                     }
                 }
                 
-                if (0 < prefixCount && 0 < fallbackCount) {
+                if (0 < prefixCount) {
                     ins.Log(prefix).LogLine(" found.");
                     ins.InitProgress("Extracting ZIP", prefixCount);
                 } else if (0 == prefixCount && 0 < fallbackCount) {
@@ -354,10 +354,9 @@ namespace FezGame.Mod.Installer {
                     }
                     ins.SetProgress(++extracted);
                     
-                    ins.Log("Extracting: ").LogLine(entry.FullName);
-                    
-                    string entryName = entry.FullName.Substring(prefix.Length);
+                    string entryName = entry.FullName.Replace('/', Path.DirectorySeparatorChar).Substring(prefix.Length);
                     string path = Path.Combine(pathFez, entryName);
+                    ins.Log("Extracting: ").Log(entry.FullName).Log(" -> ").LogLine(path);
                     if (entry.Length == 0 && entry.CompressedLength == 0) {
                         Directory.CreateDirectory(path);
                     } else {
