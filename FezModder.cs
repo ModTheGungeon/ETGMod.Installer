@@ -28,8 +28,12 @@ namespace FezGame.Mod.Installer {
             
             ins.Backup("Common.dll");
             ins.Backup("EasyStorage.dll");
-            bool monoGame = ins.Backup("MonoGame.Framework.dll");
-            bool fna = ins.Backup("FNA.dll");
+            int v = int.Parse(ins.FezVersion.Substring(2));
+            if (12 <= v) {
+                ins.Backup("FNA.dll");
+            } else {
+                ins.Backup("MonoGame.Framework.dll");
+            }
             ins.Backup("FezEngine.dll");
             ins.Backup("FEZ.exe");
             
@@ -103,15 +107,7 @@ namespace FezGame.Mod.Installer {
                 return;
             }
             
-            if (monoGame) {
-                ins.LogLine("Modding MonoGame.Framework.dll").SetProgress("Modding MonoGame.Framework.dll", 2);
-                ins.LogLine("Wait... where's FNA? Well, I guess you're using old FEZ.");
-                ins.LogLine();
-                if (!ins.Mod("MonoGame.Framework.dll")) {
-                    return;
-                }
-            }
-            if (fna) {
+            if (12 <= v) {
                 ins.LogLine("Modding FNA.dll").SetProgress("Modding FNA.dll", 2);
                 ins.LogLine("Well, there's nothing to do here.. yet.");
                 ins.LogLine("Future versions may replace \"modding\" with replacing.");
@@ -119,6 +115,13 @@ namespace FezGame.Mod.Installer {
                 ins.LogLine("It replaces MonoGame in FEZ 1.12+.");
                 ins.LogLine();
                 if (!ins.Mod("FNA.dll")) {
+                    return;
+                }
+            } else {
+                ins.LogLine("Modding MonoGame.Framework.dll").SetProgress("Modding MonoGame.Framework.dll", 2);
+                ins.LogLine("Wait... where's FNA? Well, I guess you're using old FEZ.");
+                ins.LogLine();
+                if (!ins.Mod("MonoGame.Framework.dll")) {
                     return;
                 }
             }

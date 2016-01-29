@@ -193,6 +193,7 @@ namespace FezGame.Mod.Installer {
                     }
                     if (((FieldReference) FezModCctor.Body.Instructions[i].Operand).Name == "Version") {
                         ins.FezModVersion = getString(FezModCctor.Body.Instructions, i-1);
+                        break;
                     }
                 }
             }
