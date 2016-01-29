@@ -39,7 +39,10 @@ namespace FezGame.Mod.Installer {
                 }
             }
             
-            string os = Environment.OSVersion.Platform.ToString().ToLower();
+            //string os = Environment.OSVersion.Platform.ToString().ToLower();
+            //https://github.com/mono/mono/blob/master/mcs/class/corlib/System/Environment.cs
+            //if MacOSX, OSVersion.Platform returns Unix.
+            string os = GetPlatform().ToString().ToLower();
             
             if (path == null) {
                 Console.WriteLine("Found no Steam executable");
@@ -224,6 +227,19 @@ namespace FezGame.Mod.Installer {
                 s = instructions[pos].Operand as string;
             }
             return s;
+        }
+
+        public static PlatformID GetPlatform() {
+            //for mono, get from
+            //static extern PlatformID Platform
+            PropertyInfo property_platform = typeof(Environment).GetProperty("Platform", BindingFlags.NonPublic | BindingFlags.Static);
+            if (property_platform != null) {
+                return (PlatformID) property_platform.GetValue(null);
+            } else {
+
+                //for .net, use default value
+                return Environment.OSVersion.Platform;
+            }
         }
         
     }

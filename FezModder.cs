@@ -296,6 +296,19 @@ namespace FezGame.Mod.Installer {
         }
         
         public static bool UnzipMod(this InstallerWindow ins, Stream zs) {
+            string platform = "";
+            string os = FezFinder.GetPlatform().ToString().ToLower();
+            if (os.Contains("win")) {
+                platform = "win32";
+
+            } else if (os.Contains("mac") || os.Contains("osx")) {
+                platform = "osx";
+
+            } else if (os.Contains("lin") || os.Contains("unix")) {
+                platform = IntPtr.Size == 4 ? "lib" : /*== 8*/ "lib64";
+
+            }
+
             string prefix = "FEZMOD";
             int v = int.Parse(ins.FezVersion.Substring(2));
             if (12 <= v) {
@@ -368,7 +381,18 @@ namespace FezGame.Mod.Installer {
                     }
                     ins.SetProgress(++extracted);
                     
-                    string entryName = entry.FullName.Replace('/', Path.DirectorySeparatorChar).Substring(prefix.Length);
+                    string entryName = entry.FullName.Substring(prefix.Length);
+
+                    if (entryName.StartsWith("LIBS/")) {
+                        entryName = entryName.Substring(5);
+                        if (!entryName.StartsWith(platform + "/")) {
+                            continue;
+                        }
+                        entryName = entryName.Substring(platform.Length + 1);
+                    }
+
+                    entryName = entryName.Replace('/', Path.DirectorySeparatorChar);
+
                     string path = Path.Combine(pathFez, entryName);
                     ins.Log("Extracting: ").Log(entry.FullName).Log(" -> ").LogLine(path);
                     if (entry.Length == 0 && entry.CompressedLength == 0) {
