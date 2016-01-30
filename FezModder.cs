@@ -183,6 +183,12 @@ namespace FezGame.Mod.Installer {
                 return;
             }
 
+            string pathFez = ins.ExeMod.Dir.FullName;
+            string pathBackup = Path.Combine(pathFez, "FEZModBackup");
+            if (!Directory.Exists(pathBackup)) {
+                return;
+            }
+
             if (ins.FezModVersion != null) {
                 ins.Log("Found previous FEZMod installation: ").LogLine(ins.FezModVersion);
                 ins.LogLine("Reverting to non-FEZMod backup...");
@@ -191,8 +197,6 @@ namespace FezGame.Mod.Installer {
                 ins.LogLine("Still reverting to non-FEZMod backup...");
             }
 
-            string pathFez = ins.ExeMod.Dir.FullName;
-            string pathBackup = Path.Combine(pathFez, "FEZModBackup");
             string[] files = Directory.GetFiles(pathBackup);
             ins.InitProgress("Uninstalling FEZMod", files.Length + 1);
             for (int i = 0; i < files.Length; i++) {
