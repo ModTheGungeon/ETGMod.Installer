@@ -8,6 +8,8 @@ using System.IO.Compression;
 namespace FezGame.Mod.Installer {
     public static class FezModder {
         
+        public static List<string> Blacklist = new List<string>();
+        
         public static void Install(this InstallerWindow ins) {
             try {
                 ins.Install_();
@@ -79,6 +81,24 @@ namespace FezGame.Mod.Installer {
                     }
                     ins.EndProgress("Copying FEZMod complete.");
                 }
+            }
+            
+            if (Blacklist.Count != 0) {
+                ins.LogLine();
+                ins.Log(Blacklist.Count.ToString()).LogLine(" mods on the blacklist - removing them!");
+                for (int i = 0; i < Blacklist.Count; i++) {
+                    string blacklisted = Blacklist[i];
+                    string pathFez = ins.ExeMod.Dir.FullName;
+                    string blacklistedPath = Path.Combine(pathFez, blacklisted);
+                    ins.Log(blacklisted).Log(" blacklisted - ");
+                    if (!File.Exists(blacklistedPath)) {
+                        ins.LogLine("Not found though.");
+                        continue;
+                    }
+                    ins.LogLine("BURN THE WITCH!");
+                    File.Delete(blacklistedPath);
+                }
+                ins.LogLine();
             }
             
             ins.LogLine();
@@ -403,12 +423,16 @@ namespace FezGame.Mod.Installer {
                         
                         using (Stream s = entry.Open()) {
                             using (StreamReader sr = new StreamReader(s)) {
-                                string minv = sr.ReadLine().Trim();
-                                if (InstallerWindow.Version < new Version(minv)) {
+                                Version minv = new Version(sr.ReadLine().Trim());
+                                if (InstallerWindow.Version < minv) {
                                     ins.LogLine("There's a new FEZMod Installer version!");
                                     ins.LogLine("Visit https://fezmod.xyz/#download to download it.");
-                                    ins.Log("(Minimum installer version for this FEZMod version: ").LogLine(minv).Log(")");
+                                    ins.Log("(Minimum installer version for this FEZMod version: ").LogLine(minv.ToString()).Log(")");
                                     return false;
+                                }
+                                if (new Version(16, 5, 10) <= minv) {
+                                    ins.LogLine("Blacklisting FEZMod.Speedrun as it's obsolete and causes upgrading issues");
+                                    Blacklist.Add("FEZ.Speedrun.mm.dll");
                                 }
                             }
                         }
