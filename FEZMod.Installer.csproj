@@ -199,10 +199,5 @@
     <Compile Include="lib-projs\MonoMod\MonoMod\MonoModBlacklist.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\MonoModBlacklisted.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\MonoModEnumReplace.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\JIT\MonoModJIT.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\JIT\MonoModJITPseudoException.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\JIT\MonoModJITHandler.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\JIT\MonoModJITPatched.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\JIT\ReflectionHelper.cs" />
   </ItemGroup>
 </Project>
