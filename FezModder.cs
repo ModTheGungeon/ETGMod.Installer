@@ -124,7 +124,7 @@ namespace FezGame.Mod.Installer {
             
             ins.LogLine("Modding FezEngine.dll").SetProgress("Modding FezEngine.dll", 3);
             ins.LogLine("The Trixel Engine also becomes the \"FEZMod Engine.\"");
-            ins.LogLine("If something low-level happens, for exampleloading textures,");
+            ins.LogLine("If something low-level happens, for example loading textures,");
             ins.LogLine("music, handling geometry, inter-mod-communication,... it's here.");
             ins.LogLine();
             if (!ins.Mod("FezEngine.dll")) {
