@@ -176,6 +176,7 @@ namespace FezGame.Mod.Installer {
             });
             UninstallButton.Click += (object senderClick, EventArgs eClick) => Task.Run(delegate() {
                 this.Uninstall();
+                this.ClearCache();
                 this.ExeSelected(ExeMod.In.FullName, " [just uninstalled]");
                 this.SetMainEnabled(true);
             });

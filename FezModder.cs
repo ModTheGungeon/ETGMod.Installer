@@ -41,14 +41,14 @@ namespace FezGame.Mod.Installer {
             if (ins.VersionTabs.SelectedIndex == 0) {
                 Tuple<string, string> t = ins.StableVersions[ins.StableVersionList.SelectedIndex];
                 ins.Log("FEZMod Stable ").LogLine(t.Item1);
-                if (!ins.UnzipMod(ins.Download(t.Item2))) {
+                if (!ins.UnzipMod(ins.DownloadCached(t.Item2, "stable" + t.Item1 + ".zip"))) {
                     return;
                 }
                 
             } else if (ins.VersionTabs.SelectedIndex == 1) {
                 Tuple<string, string> t = ins.NightlyVersions[ins.NightlyVersionList.SelectedIndex];
                 ins.Log("FEZMod Nightly ").LogLine(t.Item1);
-                if (!ins.UnzipMod(ins.Download(t.Item2))) {
+                if (!ins.UnzipMod(ins.DownloadCached(t.Item2, "devbuild" + t.Item1 + ".zip"))) {
                     return;
                 }
                 
@@ -83,9 +83,6 @@ namespace FezGame.Mod.Installer {
             
             ins.LogLine();
             ins.LogLine("Now comes the real \"modding\" / patching process.");
-            ins.LogLine("If the installer were to output all the MonoMod stuff here,");
-            ins.LogLine("the installer would slow down and maybe consume more RAM");
-            ins.LogLine("than 65 open tabs in Chrome. :/");
             ins.LogLine("It may seem like the Installer may be stuck sometimes. Go make");
             ins.LogLine("yourself a coffee in the meantime - it doesn't get stuck.");
             ins.LogLine("It may *crash*, though - and in this case, debug stuff appears");
@@ -109,7 +106,6 @@ namespace FezGame.Mod.Installer {
             
             if (12 <= v) {
                 ins.LogLine("Modding FNA.dll").SetProgress("Modding FNA.dll", 2);
-                ins.LogLine("Well, there's nothing to do here.. yet.");
                 ins.LogLine("Future versions may replace \"modding\" with replacing.");
                 ins.LogLine("FNA is the \"framework\" below FEZ and powering some other games, too.");
                 ins.LogLine("It replaces MonoGame in FEZ 1.12+.");
@@ -127,22 +123,16 @@ namespace FezGame.Mod.Installer {
             }
             
             ins.LogLine("Modding FezEngine.dll").SetProgress("Modding FezEngine.dll", 3);
-            ins.LogLine("This may take some time as the Trixel Engine also becomes the");
-            ins.LogLine("\"FEZMod Engine.\" If something low-level happens, for example");
-            ins.LogLine("loading textures & music, handling geometry, ... it's here.");
-            ins.LogLine("And every FEZ mod needs to use the \"FEZMod Engine\" to register");
-            ins.LogLine("itself as mod to the FEZMod core. If it's complicated, don't worry:");
-            ins.LogLine("This message simply means that modding FezEngine.dll takes time.");
+            ins.LogLine("The Trixel Engine also becomes the \"FEZMod Engine.\"");
+            ins.LogLine("If something low-level happens, for exampleloading textures,");
+            ins.LogLine("music, handling geometry, inter-mod-communication,... it's here.");
             ins.LogLine();
             if (!ins.Mod("FezEngine.dll")) {
                 return;
             }
             
             ins.LogLine("Modding FEZ.exe").SetProgress("Modding FEZ.exe", 4);
-            ins.LogLine("Remember how long FezEngine.dll was? That was nothing!");
-            ins.LogLine("Now it's time to get yourself some coffee.");
-            ins.LogLine("It'd be nice to give you more exact progress here,");
-            ins.LogLine("but as said before, it would kill the installer.");
+            ins.LogLine("This process will take the longest of all.");
             ins.LogLine("You won't see anything happening here, but don't panic:");
             ins.LogLine("If the installer crashes, an error log appears here.");
             ins.LogLine();
@@ -284,6 +274,75 @@ namespace FezGame.Mod.Installer {
             ins.Log("Download complete, ").Log(logSize).Log(" KiB in ").Log(logTime).LogLine(" s.");
             
             return data;
+        }
+        
+        public static byte[] DownloadCached(this InstallerWindow ins, string url, string cached) {
+            byte[] data = ins.ReadDataFromCache(cached);
+            if (data != null) {
+                return data;
+            }
+            
+            data = ins.Download(url);
+            
+            ins.WriteDataToCache(cached, data);
+            return data;
+        }
+        
+        public static byte[] ReadDataFromCache(this InstallerWindow ins, string cached) {
+            string pathFez = ins.ExeMod.Dir.FullName;
+            string pathCache = Path.Combine(pathFez, "FEZModCache");
+            if (!Directory.Exists(pathCache)) {
+                Directory.CreateDirectory(pathCache);
+            }
+            
+            string cachedPath = Path.Combine(pathCache, cached);
+            if (!File.Exists(cachedPath)) {
+                return null;
+            }
+            
+            ins.Log("Reading from cache: ").LogLine(cached);
+            return File.ReadAllBytes(cachedPath);
+        }
+        
+        public static void WriteDataToCache(this InstallerWindow ins, string cached, byte[] data) {
+            string pathFez = ins.ExeMod.Dir.FullName;
+            string pathCache = Path.Combine(pathFez, "FEZModCache");
+            if (!Directory.Exists(pathCache)) {
+                Directory.CreateDirectory(pathCache);
+            }
+            
+            string cachedPath = Path.Combine(pathCache, cached);
+            if (File.Exists(cachedPath)) {
+                File.Delete(cachedPath);
+            }
+            
+            ins.Log("Writing to cache: ").LogLine(cached);
+            File.WriteAllBytes(cachedPath, data);
+        }
+        
+        public static void ClearCache(this InstallerWindow ins) {
+            if (ins.ExeMod == null) {
+                return;
+            }
+
+            string pathFez = ins.ExeMod.Dir.FullName;
+            string pathCache = Path.Combine(pathFez, "FEZModCache");
+            if (!Directory.Exists(pathCache)) {
+                return;
+            }
+
+            ins.LogLine("Clearing FEZMod cache...");
+
+            string[] files = Directory.GetFiles(pathCache);
+            ins.InitProgress("Clearing FEZMod cache", files.Length + 1);
+            for (int i = 0; i < files.Length; i++) {
+                string file = Path.GetFileName(files[i]);
+                ins.Log("Removing: ").LogLine(file);
+                ins.SetProgress("Removing: " + file, i);
+                File.Delete(files[i]);
+            }
+
+            ins.EndProgress("Clearing cache complete.");
         }
 
 		private static long getLength(string url) {
