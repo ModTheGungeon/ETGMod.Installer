@@ -7,7 +7,9 @@ using System.IO.Compression;
 
 namespace FezGame.Mod.Installer {
     public static class FezModder {
-        
+
+        public static string LogPath;
+
         public static List<string> Blacklist = new List<string>();
         
         public static void Install(this InstallerWindow ins) {
@@ -100,7 +102,12 @@ namespace FezGame.Mod.Installer {
                 }
                 ins.LogLine();
             }
-            
+
+            LogPath = Path.Combine(ins.ExeMod.Dir.FullName, "FEZModInstallLog.txt");
+            if (File.Exists(LogPath)) {
+                File.Delete(LogPath);
+            }
+
             ins.LogLine();
             ins.LogLine("Now comes the real \"modding\" / patching process.");
             ins.LogLine("It may seem like the Installer may be stuck sometimes. Go make");
@@ -501,14 +508,17 @@ namespace FezGame.Mod.Installer {
         public static bool Mod(this InstallerWindow ins, string file) {
             MonoMod.MonoMod monomod = new MonoMod.MonoMod(Path.Combine(ins.ExeMod.Dir.FullName, file));
             monomod.Out = monomod.In;
-            //monomod.Logger = (string s) => ins.LogLine(s);
-            //TODO log to file
-            try {
-                monomod.AutoPatch(true, true);
-                return true;
-            } catch (Exception e) {
-                ins.LogLine(e.ToString());
-                return false;
+            using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
+                using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
+                    monomod.Logger = (string s) => streamWriter.WriteLine(s);
+                    try {
+                        monomod.AutoPatch(true, true);
+                        return true;
+                    } catch (Exception e) {
+                        ins.LogLine(e.ToString());
+                        return false;
+                    }
+                }
             }
         }
         
@@ -519,14 +529,17 @@ namespace FezGame.Mod.Installer {
             ins.ExeMod.Module = null;
             ins.ExeMod.Dependencies.Clear();
 
-            //ins.ExeMod.Logger = (string s) => ins.LogLine(s);
-            //TODO log to file
-            try {
-                ins.ExeMod.AutoPatch(true, true);
-                return true;
-            } catch (Exception e) {
-                ins.LogLine(e.ToString());
-                return false;
+            using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
+                using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
+                    ins.ExeMod.Logger = (string s) => streamWriter.WriteLine(s);
+                    try {
+                        ins.ExeMod.AutoPatch(true, true);
+                        return true;
+                    } catch (Exception e) {
+                        ins.LogLine(e.ToString());
+                        return false;
+                    }
+                }
             }
         }
         

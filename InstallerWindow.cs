@@ -49,7 +49,7 @@ namespace FezGame.Mod.Installer {
         
         public InstallerWindow() {
             Text = "FEZMod Installer";
-            FormBorderStyle = FormBorderStyle.Sizable;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
             ResizeRedraw = false;
             MaximizeBox = false;
             MinimizeBox = true;
@@ -414,6 +414,7 @@ namespace FezGame.Mod.Installer {
         [STAThread]
         public static void Main(string[] args) {
             Console.WriteLine("Entering the holy realm of FEZMod.");
+            Application.EnableVisualStyles();
 
             Assembly assembly = Assembly.GetExecutingAssembly();
             string[] manifestResourceNames = assembly.GetManifestResourceNames();
