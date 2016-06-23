@@ -133,13 +133,15 @@ namespace ETGModInstaller {
                 ins.InstallButton.Enabled = false;
             });
 
-            if (path != null) {
-                path = Path.Combine(Directory.GetParent(path).FullName, "EtG_Data", "Managed", "Assembly-CSharp.dll");
-                if (!File.Exists(path)) {
-                    path = null;
+            if (ins.MainMod == null || ins.MainMod.In.FullName != path) {
+                if (path != null) {
+                    path = Path.Combine(Directory.GetParent(path).FullName, "EtG_Data", "Managed", "Assembly-CSharp.dll");
+                    if (!File.Exists(path)) {
+                        path = null;
+                    }
                 }
             }
-            
+
             if (path != null) {
                 ins.MainMod = new MonoMod.MonoMod(path);
             } else {
@@ -147,7 +149,7 @@ namespace ETGModInstaller {
                 ins.ModVersion = null;
                 return;
             }
-            
+
             //We want to read the assembly now already. Writing is also handled manually.
             try {
                 ins.MainMod.Read(true);

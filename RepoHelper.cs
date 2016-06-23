@@ -5,7 +5,7 @@ using System.Net;
 namespace ETGModInstaller {
     public static class RepoHelper {
 
-        public static string ETGModURL = "http://modthegungeon.github.io/etgmod.zip";
+        public static string ETGModURL = "http://modthegungeon.github.io/ETGMOD.zip";
 
         public static List<Tuple<string, string>> GetAPIMods() {
             string data = null;
