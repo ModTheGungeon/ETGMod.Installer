@@ -270,7 +270,7 @@ namespace ETGModInstaller {
                     APIModsList.Items.Add(APIMods[i].Item1);
                 }
                 APIModsList.SelectedIndices.Clear();
-                APIModsList.SelectedIndices.Add(0);
+                // APIModsList.SelectedIndices.Add(0);
                 APIModsList.EndUpdate();
             });
         }
