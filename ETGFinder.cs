@@ -12,8 +12,13 @@ using System.Diagnostics;
 using Mono.Collections.Generic;
 using Mono.Cecil.Cil;
 
-namespace FezGame.Mod.Installer {
-    public static class FezFinder {
+namespace ETGModInstaller {
+    public static class ETGFinder {
+
+        public static string GetMainName() {
+            string os = GetPlatform().ToString().ToLower();
+            return os.Contains("win") ? "EtG.exe" : "EtG.x86_64";
+        }
         
         public static string GetSteamPath() {
             Process[] processes = Process.GetProcesses(".");
@@ -88,23 +93,23 @@ namespace FezGame.Mod.Installer {
             }
             path = Path.Combine(path, "common"); //SA/common
             
-            path = Path.Combine(path, "FEZ");
-            path = Path.Combine(path, "FEZ.exe");
+            path = Path.Combine(path, "Enter the Gungeon");
+            path = Path.Combine(path, ETGFinder.GetMainName());
             
             if (!File.Exists(path)) {
-                Console.WriteLine("FEZ not found at " + path + " (at least Steam found)");
+                Console.WriteLine("EtG not found at " + path + " (at least Steam found)");
                 return null;
             }
             
-            Console.WriteLine("FEZ found at " + path);
+            Console.WriteLine("EtG found at " + path);
             
             return path;
         }
         
-        public static void FindFEZ() {
+        public static void FindETG() {
             string path;
             
-            if ((path = FezFinder.GetSteamPath()) != null) {
+            if ((path = ETGFinder.GetSteamPath()) != null) {
                 try {
                     InstallerWindow.Instance.ExeSelected(path, " [auto - Steam]");
                 } catch (Exception e) {
@@ -112,7 +117,6 @@ namespace FezGame.Mod.Installer {
                 }
             } else if (false) {
                 //TODO check other paths
-                //How does GOG handle FEZ?
             } else {
                 InstallerWindow.Instance.ExeSelected(null);
             }
@@ -120,7 +124,7 @@ namespace FezGame.Mod.Installer {
         
         public static void ExeSelected(this InstallerWindow ins, string path, string suffix = null) {
             ins.Invoke(delegate() {
-                ins.ExeStatusLabel.Text = path == null ? "No FEZ.exe selected" : "FEZ [checking version]";
+                ins.ExeStatusLabel.Text = path == null ? ("No " + ETGFinder.GetMainName() + " selected") : "EtG [checking version]";
                 if (path != null && suffix != null) {
                     ins.ExeStatusLabel.Text += suffix;
                 }
@@ -128,89 +132,70 @@ namespace FezGame.Mod.Installer {
                 ins.ExePathBox.Text = path ?? "";
                 ins.InstallButton.Enabled = false;
             });
+
+            if (path != null) {
+                path = Path.Combine(Directory.GetParent(path).FullName, "EtG_Data", "Managed", "Assembly-CSharp.dll");
+                if (!File.Exists(path)) {
+                    path = null;
+                }
+            }
             
             if (path != null) {
-                ins.ExeMod = new MonoMod.MonoMod(path);
+                ins.MainMod = new MonoMod.MonoMod(path);
             } else {
-                ins.ExeMod = null;
-                ins.FezVersion = null;
-                ins.FezModVersion = null;
+                ins.MainMod = null;
+                ins.ModVersion = null;
                 return;
             }
             
-            //We want to read the EXE now already. Writing is also handled manually.
+            //We want to read the assembly now already. Writing is also handled manually.
             try {
-                ins.ExeMod.Read(true);
+                ins.MainMod.Read(true);
             } catch (BadImageFormatException) {
-                //this is not FEZ.exe...
+                //this is not the assembly we need...
                 ins.ExeSelected(null);
                 return;
             }
             
-            TypeDefinition FezType = ins.ExeMod.Module.GetType("FezGame.Fez");
-            if (FezType == null) {
-                ins.ExeSelected(null);
-                return;
-            }
-            MethodDefinition FezCctor = null;
-            for (int i = 0; i < FezType.Methods.Count; i++) {
-                if (FezType.Methods[i].IsStatic && FezType.Methods[i].IsConstructor) {
-                    FezCctor = FezType.Methods[i];
-                    break;
-                }
-            }
-            if (FezCctor == null) {
-                ins.ExeSelected(null);
-                return;
-            }
-            ins.FezVersion = null;
-            for (int i = 0; i < FezCctor.Body.Instructions.Count; i++) {
-                if (!(FezCctor.Body.Instructions[i].Operand is FieldReference)) {
-                    continue;
-                }
-                if (((FieldReference) FezCctor.Body.Instructions[i].Operand).Name == "Version") {
-                    ins.FezVersion = getString(FezCctor.Body.Instructions, i-1);
-                }
-            }
-            
-            TypeDefinition FezModType = ins.ExeMod.Module.GetType("FezGame.Mod.FEZMod");
-            if (FezModType != null) {
-                MethodDefinition FezModCctor = null;
-                for (int i = 0; i < FezModType.Methods.Count; i++) {
-                    if (FezModType.Methods[i].IsStatic && FezModType.Methods[i].IsConstructor) {
-                        FezModCctor = FezModType.Methods[i];
+            /* Gungeon version, according to Gungeon:
+            TextAsset textAsset = Resources.Load<TextAsset>("version");
+		    if (textAsset != null) {
+			    UnityEngine.Debug.Log("Version: " + textAsset.text);
+		    }
+            */
+
+            TypeDefinition ModType = ins.MainMod.Module.GetType("ETGMod");
+            if (ModType != null) {
+                MethodDefinition ModCctor = null;
+                for (int i = 0; i < ModType.Methods.Count; i++) {
+                    if (ModType.Methods[i].IsStatic && ModType.Methods[i].IsConstructor) {
+                        ModCctor = ModType.Methods[i];
                         break;
                     }
                 }
-                if (FezModCctor == null) {
+                if (ModCctor == null) {
                     ins.ExeSelected(null);
                     return;
                 }
-                ins.FezModVersion = null;
-                for (int i = 0; i < FezModCctor.Body.Instructions.Count; i++) {
-                    if (!(FezModCctor.Body.Instructions[i].Operand is FieldReference)) {
+                ins.ModVersion = null;
+                for (int i = 0; i < ModCctor.Body.Instructions.Count; i++) {
+                    if (!(ModCctor.Body.Instructions[i].Operand is FieldReference)) {
                         continue;
                     }
-                    if (((FieldReference) FezModCctor.Body.Instructions[i].Operand).Name == "Version") {
-                        ins.FezModVersion = getString(FezModCctor.Body.Instructions, i-1);
+                    if (((FieldReference) ModCctor.Body.Instructions[i].Operand).Name == "Version") {
+                        ins.ModVersion = getString(ModCctor.Body.Instructions, i-1);
                         break;
                     }
                 }
             }
             
             ins.Invoke(delegate() {
-                if (ins.FezVersion == null) {
-                    ins.ExeStatusLabel.Text = "FEZ [unknown version]";
-                    ins.ExeStatusLabel.BackColor = Color.FromArgb(127, 255, 255, 63);
-                } else {
-                    ins.ExeStatusLabel.Text = "FEZ ";
-                    ins.ExeStatusLabel.Text += ins.FezVersion;
-                    ins.ExeStatusLabel.BackColor = Color.FromArgb(127, 63, 255, 91);
-                }
+                ins.ExeStatusLabel.Text = "Enter The Gungeon";
+                ins.ExeStatusLabel.BackColor = Color.FromArgb(127, 63, 255, 91);
                 
-                if (ins.FezModVersion != null) {
+                if (ins.ModVersion != null) {
                     ins.ExeStatusLabel.Text += " [Mod:";
-                    ins.ExeStatusLabel.Text += ins.FezModVersion;
+                    ins.ExeStatusLabel.Text += ins.ModVersion;
                     ins.ExeStatusLabel.Text += "]";
                 }
                 
@@ -245,3 +230,4 @@ namespace FezGame.Mod.Installer {
         
     }
 }
+ 

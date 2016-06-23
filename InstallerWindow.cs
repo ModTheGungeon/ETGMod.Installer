@@ -14,7 +14,7 @@ using System.Windows.Forms.VisualStyles;
 
 using ContentAlignment = System.Drawing.ContentAlignment;
 
-namespace FezGame.Mod.Installer {
+namespace ETGModInstaller {
     public class InstallerWindow : Form {
 
         public static Version Version = Assembly.GetEntryAssembly().GetName().Version;
@@ -29,8 +29,7 @@ namespace FezGame.Mod.Installer {
         public Button ExePathButton;
         public Label ExeStatusLabel;
         public TabControl VersionTabs;
-        public ListBox StableVersionList;
-        public ListBox NightlyVersionList;
+        public ListBox APIModsList;
         public TextBox ManualPathBox;
         public Button ManualPathButton;
         public Button InstallButton;
@@ -40,15 +39,13 @@ namespace FezGame.Mod.Installer {
         public int AddIndex = 0;
         public int AddOffset = 0;
         
-        public List<Tuple<string, string>> StableVersions;
-        public List<Tuple<string, string>> NightlyVersions;
+        public List<Tuple<string, string>> APIMods;
         
-        public string FezVersion;
-        public string FezModVersion;
-        public MonoMod.MonoMod ExeMod;
+        public string ModVersion;
+        public MonoMod.MonoMod MainMod;
         
         public InstallerWindow() {
-            Text = "FEZMod Installer";
+            Text = "Mod the Gungeon Installer";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             ResizeRedraw = false;
             MaximizeBox = false;
@@ -95,7 +92,7 @@ namespace FezGame.Mod.Installer {
                 ForeColor = Color.White,
                 BorderStyle = BorderStyle.None,
                 WordWrap = true,
-                Text = "FEZMod Installer v" + Version + "\n",
+                Text = "ETGMod Installer v" + Version + "\n",
                 Visible = false,
             });
 
@@ -108,7 +105,7 @@ namespace FezGame.Mod.Installer {
             Add(new Label() {
                 //Font = GlobalFont,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Text = "Step 1: Select FEZ.exe",
+                Text = "Step 1: Select " + ETGFinder.GetMainName(),
                 BackColor = Color.Transparent,
                 ForeColor = Color.Black
             });
@@ -125,14 +122,14 @@ namespace FezGame.Mod.Installer {
             ExePathButton.Click += delegate(object senderClick, EventArgs eClick) {
                 if (OpenFileDialog == null) {
                     OpenFileDialog = new OpenFileDialog() {
-                        Title = "Select FEZ.exe",
+                        Title = "Select " + ETGFinder.GetMainName(),
                         AutoUpgradeEnabled = true,
                         CheckFileExists = true,
                         CheckPathExists = true,
                         ValidateNames = true,
                         Multiselect = false,
                         ShowReadOnly = false,
-                        Filter = "FEZ.exe|FEZ.exe|All files|*.*",
+                        Filter = ETGFinder.GetMainName() + "|" + ETGFinder.GetMainName()  + "| All files|*.*",
                         FilterIndex = 0
                     };
                     OpenFileDialog.FileOk +=
@@ -146,7 +143,7 @@ namespace FezGame.Mod.Installer {
             Add(ExeStatusLabel = new Label() {
                 //Font = GlobalFont,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Text = "No FEZ.exe selected",
+                Text = "No " + ETGFinder.GetMainName() + " selected",
                 BackColor = Color.FromArgb(127, 255, 63, 63),
                 ForeColor = Color.Black
             });
@@ -156,7 +153,7 @@ namespace FezGame.Mod.Installer {
             Add(new Label() {
                 //Font = GlobalFont,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Text = "Step 2: Choose FEZMod version",
+                Text = "Step 2: Choose your API mods",
                 BackColor = Color.Transparent,
                 ForeColor = Color.Black
             });
@@ -165,7 +162,7 @@ namespace FezGame.Mod.Installer {
                 Bounds = new Rectangle(448, 313 - 1 - ExePathButton.Size.Height, 312 - 32, ExePathButton.Size.Height),
                 //Font = GlobalFont,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Text = "Step 3: Install FEZMod",
+                Text = "Step 3: Install ETGMod",
                 Enabled = false
             });
             InstallButton.Click += (object senderClick, EventArgs eClick) => Task.Run((Action) this.Install);
@@ -177,7 +174,7 @@ namespace FezGame.Mod.Installer {
             UninstallButton.Click += (object senderClick, EventArgs eClick) => Task.Run(delegate() {
                 this.Uninstall();
                 this.ClearCache();
-                this.ExeSelected(ExeMod.In.FullName, " [just uninstalled]");
+                this.ExeSelected(MainMod.In.FullName, " [just uninstalled]");
                 this.SetMainEnabled(true);
             });
             
@@ -186,21 +183,16 @@ namespace FezGame.Mod.Installer {
                 BackColor = Color.Transparent
             });
             
-            VersionTabs.TabPages.Add(new TabPage("Stable"));
-            VersionTabs.TabPages[0].Controls.Add(StableVersionList = new ListBox() {
+            VersionTabs.TabPages.Add(new TabPage("API Mods"));
+            VersionTabs.TabPages[0].Controls.Add(APIModsList = new ListBox() {
                 Dock = DockStyle.Fill,
-                MultiColumn = true
+                MultiColumn = true,
+                SelectionMode = SelectionMode.MultiExtended
             });
             
-            VersionTabs.TabPages.Add(new TabPage("Nightly"));
-            VersionTabs.TabPages[1].Controls.Add(NightlyVersionList = new ListBox() {
-                Dock = DockStyle.Fill,
-                MultiColumn = true
-            });
-            
-            VersionTabs.TabPages.Add(new TabPage("Manual"));
+            VersionTabs.TabPages.Add(new TabPage("Advanced"));
             Panel manualPanel;
-            VersionTabs.TabPages[2].Controls.Add(manualPanel = new Panel() {
+            VersionTabs.TabPages[1].Controls.Add(manualPanel = new Panel() {
                 Dock = DockStyle.Fill
             });
             manualPanel.Controls.Add(new Label() {
@@ -220,14 +212,14 @@ namespace FezGame.Mod.Installer {
             ManualPathButton.Click += delegate(object senderClick, EventArgs eClick) {
                 if (OpenFileDialog == null) {
                     OpenFileDialog = new OpenFileDialog() {
-                        Title = "Select FEZMod ZIP",
+                        Title = "Select ETGMod ZIP",
                         AutoUpgradeEnabled = true,
                         CheckFileExists = true,
                         CheckPathExists = true,
                         ValidateNames = true,
                         Multiselect = false,
                         ShowReadOnly = false,
-                        Filter = "FEZMod ZIP|*.zip|All files|*.*",
+                        Filter = "ETGMod ZIP|*.zip|All files|*.*",
                         FilterIndex = 0
                     };
                     OpenFileDialog.FileOk +=
@@ -243,76 +235,43 @@ namespace FezGame.Mod.Installer {
                 ExePathBox.Enabled = enabled;
                 ExePathButton.Enabled = enabled;
                 VersionTabs.Enabled = enabled;
-                StableVersionList.Enabled = enabled;
-                NightlyVersionList.Enabled = enabled;
-                InstallButton.Enabled = enabled && FezVersion != null;
+                APIModsList.Enabled = enabled;
+                InstallButton.Enabled = enabled && MainMod != null;
                 UninstallButton.Enabled = enabled;
             });
         }
         
-        public void DownloadStableVersionList() {
+        public void DownloadModsList() {
             Invoke(delegate() {
-                StableVersionList.BeginUpdate();
-                StableVersionList.Items.Add("Downloading list...");
-                StableVersionList.EndUpdate();
+                APIModsList.BeginUpdate();
+                APIModsList.Items.Add("Downloading list...");
+                APIModsList.EndUpdate();
             });
             
             try {
-                StableVersions = VersionHelper.GetStableVersions();
+                APIMods = RepoHelper.GetAPIMods();
             } catch (Exception e) {
-                StableVersions = null;
+                APIMods = null;
                 LogLine("Something went horribly wrong:");
                 LogLine(e.ToString());
                 Invoke(delegate() {
-                    StableVersionList.BeginUpdate();
-                    StableVersionList.Items.Clear();
-                    StableVersionList.Items.Add("Something went wrong - see the log.");
-                    StableVersionList.EndUpdate();
+                    APIModsList.BeginUpdate();
+                    APIModsList.Items.Clear();
+                    APIModsList.Items.Add("Something went wrong - see the log.");
+                    APIModsList.EndUpdate();
                 });
                 return;
             }
             
             Invoke(delegate() {
-                StableVersionList.BeginUpdate();
-                StableVersionList.Items.Clear();
-                for (int i = 0; i < StableVersions.Count; i++) {
-                    StableVersionList.Items.Add(StableVersions[i].Item1);
+                APIModsList.BeginUpdate();
+                APIModsList.Items.Clear();
+                for (int i = 0; i < APIMods.Count; i++) {
+                    APIModsList.Items.Add(APIMods[i].Item1);
                 }
-                StableVersionList.SelectedIndex = 0;
-                StableVersionList.EndUpdate();
-            });
-        }
-        
-        public void DownloadNightlyVersionList() {
-            Invoke(delegate() {
-                NightlyVersionList.BeginUpdate();
-                NightlyVersionList.Items.Add("Downloading list...");
-                NightlyVersionList.EndUpdate();
-            });
-            
-            try {
-                NightlyVersions = VersionHelper.GetNightlyVersions();
-            } catch (Exception e) {
-                NightlyVersions = null;
-                LogLine("Something went horribly wrong:");
-                LogLine(e.ToString());
-                Invoke(delegate() {
-                    NightlyVersionList.BeginUpdate();
-                    NightlyVersionList.Items.Clear();
-                    NightlyVersionList.Items.Add("Something went wrong - see the log.");
-                    NightlyVersionList.EndUpdate();
-                });
-                return;
-            }
-            
-            Invoke(delegate() {
-                NightlyVersionList.BeginUpdate();
-                NightlyVersionList.Items.Clear();
-                for (int i = 0; i < NightlyVersions.Count; i++) {
-                    NightlyVersionList.Items.Add(NightlyVersions[i].Item1);
-                }
-                NightlyVersionList.SelectedIndex = 0;
-                NightlyVersionList.EndUpdate();
+                APIModsList.SelectedIndices.Clear();
+                APIModsList.SelectedIndices.Add(0);
+                APIModsList.EndUpdate();
             });
         }
         
@@ -399,9 +358,8 @@ namespace FezGame.Mod.Installer {
         
         private void onHandleCreated(object sender, EventArgs e) {
             HandleCreated -= onHandleCreated;
-            Task.Run((Action) FezFinder.FindFEZ);
-            Task.Run((Action) DownloadStableVersionList);
-            Task.Run((Action) DownloadNightlyVersionList);
+            Task.Run((Action) ETGFinder.FindETG);
+            Task.Run((Action) DownloadModsList);
         }
 
         private void onDragDrop(object sender, DragEventArgs e) {
@@ -413,7 +371,7 @@ namespace FezGame.Mod.Installer {
 
         [STAThread]
         public static void Main(string[] args) {
-            Console.WriteLine("Entering the holy realm of FEZMod.");
+            Console.WriteLine("Entering the holy realm of ETGMod.");
             Application.EnableVisualStyles();
 
             Assembly assembly = Assembly.GetExecutingAssembly();
@@ -432,7 +390,7 @@ namespace FezGame.Mod.Installer {
             } catch (Exception e) {
                 //Gonna blame X11.
                 Console.WriteLine(e.ToString());
-                MessageBox.Show("Your window manager has left the building!\nThis simply means the installer crashed,\nbut your window manager caused it.", "FEZMod Installer");
+                MessageBox.Show("Your window manager has left the building!\nThis simply means the installer crashed,\nbut your window manager caused it.", "ETGMod Installer");
                 goto ShowDialog;
             }
         }
@@ -442,7 +400,7 @@ namespace FezGame.Mod.Installer {
             Type t = typeof(T);
 
             if (t == typeof(Image) || t == typeof(Bitmap)) {
-                using (Stream s = assembly.GetManifestResourceStream(fullPath ? name : "FEZMod.Installer.Assets." + name + ".png")) {
+                using (Stream s = assembly.GetManifestResourceStream(fullPath ? name : "ETGMod.Installer.Assets." + name + ".png")) {
                     return Image.FromStream(s) as T;
                 }
             }
@@ -454,7 +412,7 @@ namespace FezGame.Mod.Installer {
             if (t == typeof(PrivateFontCollection)) {
                 PrivateFontCollection pfc = new PrivateFontCollection();
                 byte[] data;
-                using (Stream s = assembly.GetManifestResourceStream(fullPath ? name : "FEZMod.Installer.Assets." + name + ".ttf")) {
+                using (Stream s = assembly.GetManifestResourceStream(fullPath ? name : "ETGMod.Installer.Assets." + name + ".ttf")) {
                     data = new byte[s.Length];
                     s.Read(data, 0, (int) s.Length);
                 }

@@ -9,7 +9,7 @@ using Mono.Cecil;
 using System.Threading.Tasks;
 using System.ComponentModel;
 
-namespace FezGame.Mod.Installer {
+namespace ETGModInstaller {
     public class CustomProgress : Control {
         
         public int Value = 0;

@@ -5,8 +5,8 @@ using System.Net;
 using System.Globalization;
 using System.IO.Compression;
 
-namespace FezGame.Mod.Installer {
-    public static class FezModder {
+namespace ETGModInstaller {
+    public static class ETGModder {
 
         public static string LogPath;
 
@@ -23,53 +23,46 @@ namespace FezGame.Mod.Installer {
         private static void Install_(this InstallerWindow ins) {
             ins.Invoke(() => ins.LogBox.Visible = true).SetMainEnabled(false);
             
-            Directory.SetCurrentDirectory(ins.ExeMod.Dir.FullName);
+            Directory.SetCurrentDirectory(ins.MainMod.Dir.FullName);
             
-            ins.Log("FEZ ").LogLine(ins.FezVersion);
+            ins.LogLine("Entering the Modgeon");
             
-            //Clean FEZ from any previous FEZMod installation
+            //Clean the game from any previous installation
             ins.Uninstall();
             
-            ins.Backup("Common.dll");
-            ins.Backup("EasyStorage.dll");
-            int v = int.Parse(ins.FezVersion.Substring(2));
-            if (12 <= v) {
-                ins.Backup("FNA.dll");
-            } else {
-                ins.Backup("MonoGame.Framework.dll");
-            }
-            ins.Backup("FezEngine.dll");
-            ins.Backup("FEZ.exe");
-            
+            ins.Backup("Assembly-CSharp.dll");
+
+            //FIXME DEOBFUSCATE
+            ins.PrepareDeobfuscator();
+            ins.Deobfuscate("Assembly-CSharp.dll");
+
             //Setup the files and MonoMod instances
+            ins.LogLine("Mod #0: API MOD (ETGMod)");
+            if (!ins.UnzipMod(ins.DownloadCached(RepoHelper.ETGModURL, "ETGMOD.zip"))) {
+                return;
+            }
             if (ins.VersionTabs.SelectedIndex == 0) {
-                Tuple<string, string> t = ins.StableVersions[ins.StableVersionList.SelectedIndex];
-                ins.Log("FEZMod Stable ").LogLine(t.Item1);
-                if (!ins.UnzipMod(ins.DownloadCached(t.Item2, "stable" + t.Item1 + ".zip"))) {
-                    return;
+                for (int i = 0; i < ins.APIModsList.SelectedIndices.Count; i++) {
+                    Tuple<string, string> t = ins.APIMods[i];
+                    ins.Log("Mod #").Log((i + 1).ToString()).Log(": ").LogLine(t.Item1);
+                    if (!ins.UnzipMod(ins.DownloadCached(t.Item2, t.Item1 + ".zip"))) {
+                        return;
+                    }
                 }
-                
-            } else if (ins.VersionTabs.SelectedIndex == 1) {
-                Tuple<string, string> t = ins.NightlyVersions[ins.NightlyVersionList.SelectedIndex];
-                ins.Log("FEZMod Nightly ").LogLine(t.Item1);
-                if (!ins.UnzipMod(ins.DownloadCached(t.Item2, "devbuild" + t.Item1 + ".zip"))) {
-                    return;
-                }
-                
             } else if (ins.VersionTabs.SelectedIndex == 2) {
                 string path = ins.ManualPathBox.Text;
 
                 if (path.ToLower().EndsWith(".zip")) {
-                    ins.LogLine("FEZMod Manual ZIP");
+                    ins.LogLine("ETGMod Manual ZIP");
                     if (!ins.UnzipMod(File.OpenRead(path))) {
                         return;
                     }
                 } else {
-                    ins.LogLine("FEZMod Manual Folder");
+                    ins.LogLine("ETGMod Manual Folder");
 
-                    string pathFez = ins.ExeMod.Dir.FullName;
+                    string pathGame = ins.MainMod.Dir.FullName;
                     string[] files = Directory.GetFiles(path);
-                    ins.InitProgress("Copying FEZMod", files.Length);
+                    ins.InitProgress("Copying ETGMod", files.Length);
                     for (int i = 0; i < files.Length; i++) {
                         string file = Path.GetFileName(files[i]);
                         if (!file.Contains(".mm.")) {
@@ -78,10 +71,10 @@ namespace FezGame.Mod.Installer {
                         }
                         ins.Log("Copying: ").LogLine(file);
                         ins.SetProgress("Copying: " + file, i);
-                        string origPath = Path.Combine(pathFez, file);
+                        string origPath = Path.Combine(pathGame, file);
                         File.Copy(files[i], origPath, true);
                     }
-                    ins.EndProgress("Copying FEZMod complete.");
+                    ins.EndProgress("Copying ETGMod complete.");
                 }
             }
             
@@ -90,8 +83,8 @@ namespace FezGame.Mod.Installer {
                 ins.Log(Blacklist.Count.ToString()).LogLine(" mods on the blacklist - removing them!");
                 for (int i = 0; i < Blacklist.Count; i++) {
                     string blacklisted = Blacklist[i];
-                    string pathFez = ins.ExeMod.Dir.FullName;
-                    string blacklistedPath = Path.Combine(pathFez, blacklisted);
+                    string pathGame = ins.MainMod.Dir.FullName;
+                    string blacklistedPath = Path.Combine(pathGame, blacklisted);
                     ins.Log(blacklisted).Log(" blacklisted - ");
                     if (!File.Exists(blacklistedPath)) {
                         ins.LogLine("Not found though.");
@@ -103,7 +96,7 @@ namespace FezGame.Mod.Installer {
                 ins.LogLine();
             }
 
-            LogPath = Path.Combine(ins.ExeMod.Dir.FullName, "FEZModInstallLog.txt");
+            LogPath = Path.Combine(ins.MainMod.Dir.FullName, "ETGModInstallLog.txt");
             if (File.Exists(LogPath)) {
                 File.Delete(LogPath);
             }
@@ -114,78 +107,33 @@ namespace FezGame.Mod.Installer {
             ins.LogLine("yourself a coffee in the meantime - it doesn't get stuck.");
             ins.LogLine("It may *crash*, though - and in this case, debug stuff appears");
             ins.LogLine("here. Please put that debug stuff onto http://hastebin.com/ and");
-            ins.LogLine("send it to @0x0ade on Twitter or FEZMod on GitHub.");
+            ins.LogLine("send it to @0x0ade on Twitter or the #modding channel in Discord.");
             ins.LogLine();
             
-            ins.LogLine("Modding Common.dll").InitProgress("Modding Common.dll", 5);
-            ins.LogLine("Common.dll is not that huge - not much to say here.");
-            ins.LogLine();
-            if (!ins.Mod("Common.dll")) {
-                return;
-            }
-            
-            ins.LogLine("Modding EasyStorage.dll").SetProgress("Modding EasyStorage.dll", 1);
-            ins.LogLine("EasyStorage.dll also isn't huge - most probably Steam and Android stuff.");
-            ins.LogLine();
-            if (!ins.Mod("EasyStorage.dll")) {
-                return;
-            }
-            
-            if (12 <= v) {
-                ins.LogLine("Modding FNA.dll").SetProgress("Modding FNA.dll", 2);
-                ins.LogLine("Future versions may replace \"modding\" with replacing.");
-                ins.LogLine("FNA is the \"framework\" below FEZ and powering some other games, too.");
-                ins.LogLine("It replaces MonoGame in FEZ 1.12+.");
-                ins.LogLine();
-                if (!ins.Mod("FNA.dll")) {
-                    return;
-                }
-            } else {
-                ins.LogLine("Modding MonoGame.Framework.dll").SetProgress("Modding MonoGame.Framework.dll", 2);
-                ins.LogLine("Wait... where's FNA? Well, I guess you're using old FEZ.");
-                ins.LogLine();
-                if (!ins.Mod("MonoGame.Framework.dll")) {
-                    return;
-                }
-            }
-            
-            ins.LogLine("Modding FezEngine.dll").SetProgress("Modding FezEngine.dll", 3);
-            ins.LogLine("The Trixel Engine also becomes the \"FEZMod Engine.\"");
-            ins.LogLine("If something low-level happens, for example loading textures,");
-            ins.LogLine("music, handling geometry, inter-mod-communication,... it's here.");
-            ins.LogLine();
-            if (!ins.Mod("FezEngine.dll")) {
-                return;
-            }
-            
-            ins.LogLine("Modding FEZ.exe").SetProgress("Modding FEZ.exe", 4);
-            ins.LogLine("This process will take the longest of all.");
-            ins.LogLine("You won't see anything happening here, but don't panic:");
-            ins.LogLine("If the installer crashes, an error log appears here.");
-            ins.LogLine();
             if (!ins.Mod()) {
                 return;
             }
             
             ins.EndProgress("Modding complete.");
             ins.LogLine("Back with the coffee? We're done! Look at the top-right!");
-            ins.LogLine("You should see [just installed]. Feel free to start FEZ.");
-            ins.LogLine("If FEZ crashes with FEZMod, go to the FEZ folder (that one");
-            ins.LogLine("where FEZ.exe is, basically the path at the top-right),");
-            ins.LogLine("upload JAFM Log.txt somewhere and give it @0x0ade.");
+            ins.LogLine("You should see [just installed]. Feel free to start EtG.");
+            ins.LogLine("If EtG crashes with ETGMod, go to the EtG folder (that one");
+            ins.Log("where ").Log(ETGFinder.GetMainName()).LogLine(" is, basically the path at the top-right),");
+            ins.LogLine("then go to EtG_Data (that scary folder with many files),");
+            ins.LogLine("upload output_log.txt somewhere and give it @0x0ade.");
             ins.LogLine("Good luck - Have fun!");
-            ins.ExeSelected(ins.ExeMod.In.FullName, " [just installed]");
+            ins.ExeSelected(ins.MainMod.In.FullName, " [just installed]");
             ins.SetMainEnabled(true);
         }
         
         public static bool Backup(this InstallerWindow ins, string file) {
-            string pathFez = ins.ExeMod.Dir.FullName;
-            string pathBackup = Path.Combine(pathFez, "FEZModBackup");
+            string pathGame = ins.MainMod.Dir.FullName;
+            string pathBackup = Path.Combine(pathGame, "ModBackup");
             if (!Directory.Exists(pathBackup)) {
                 Directory.CreateDirectory(pathBackup);
             }
             
-            string origPath = Path.Combine(pathFez, file);
+            string origPath = Path.Combine(pathGame, file);
             if (!File.Exists(origPath)) {
                 return false;
             }
@@ -196,39 +144,51 @@ namespace FezGame.Mod.Installer {
         }
         
         public static void Uninstall(this InstallerWindow ins) {
-            if (ins.ExeMod == null) {
+            if (ins.MainMod == null) {
                 return;
             }
 
-            string pathFez = ins.ExeMod.Dir.FullName;
-            string pathBackup = Path.Combine(pathFez, "FEZModBackup");
+            string pathGame = ins.MainMod.Dir.FullName;
+            string pathBackup = Path.Combine(pathGame, "ModBackup");
             if (!Directory.Exists(pathBackup)) {
                 return;
             }
 
-            if (ins.FezModVersion != null) {
-                ins.Log("Found previous FEZMod installation: ").LogLine(ins.FezModVersion);
-                ins.LogLine("Reverting to non-FEZMod backup...");
-            } else {
-                ins.LogLine("No previous FEZMod installation found.");
-                ins.LogLine("Still reverting to non-FEZMod backup...");
+            string[] files = Directory.GetFiles(pathGame);
+            ins.InitProgress("Removing leftover files", files.Length + 1);
+            for (int i = 0; i < files.Length; i++) {
+                string file = Path.GetFileName(files[i]);
+                if (!file.Contains(".mm.")) {
+                    continue;
+                }
+                ins.Log("Removing: ").LogLine(file);
+                ins.SetProgress("Removing: " + file, i);
+                File.Delete(files[i]);
             }
 
-            string[] files = Directory.GetFiles(pathBackup);
-            ins.InitProgress("Uninstalling FEZMod", files.Length + 1);
+            if (ins.ModVersion != null) {
+                ins.Log("Found previous mod installation: ").LogLine(ins.ModVersion);
+                ins.LogLine("Reverting to unmodded backup...");
+            } else {
+                ins.LogLine("No previous mod installation found.");
+                ins.LogLine("Still reverting to unmodded backup...");
+            }
+
+            files = Directory.GetFiles(pathBackup);
+            ins.InitProgress("Uninstalling ETGMod", files.Length + 1);
             for (int i = 0; i < files.Length; i++) {
                 string file = Path.GetFileName(files[i]);
                 ins.Log("Reverting: ").LogLine(file);
                 ins.SetProgress("Reverting: " + file, i);
-                string origPath = Path.Combine(pathFez, file);
+                string origPath = Path.Combine(pathGame, file);
                 File.Delete(origPath);
                 File.Move(files[i], origPath);
             }
 
-            ins.LogLine("Reloading FEZ.exe");
-            ins.SetProgress("Reloading FEZ.exe", files.Length);
-            ins.ExeMod = new MonoMod.MonoMod(Path.Combine(pathFez, "FEZ.exe"));
-            ins.ExeMod.Read(true);
+            ins.LogLine("Reloading Assembly-CSharp.dll");
+            ins.SetProgress("Reloading Assembly-CSharp.dll", files.Length);
+            ins.MainMod = new MonoMod.MonoMod(ins.MainMod.In);
+            ins.MainMod.Read(true);
             ins.EndProgress("Uninstalling complete.");
         }
         
@@ -316,8 +276,8 @@ namespace FezGame.Mod.Installer {
         }
         
         public static byte[] ReadDataFromCache(this InstallerWindow ins, string cached) {
-            string pathFez = ins.ExeMod.Dir.FullName;
-            string pathCache = Path.Combine(pathFez, "FEZModCache");
+            string pathGame = ins.MainMod.Dir.FullName;
+            string pathCache = Path.Combine(pathGame, "ModCache");
             if (!Directory.Exists(pathCache)) {
                 Directory.CreateDirectory(pathCache);
             }
@@ -332,10 +292,15 @@ namespace FezGame.Mod.Installer {
         }
         
         public static void WriteDataToCache(this InstallerWindow ins, string cached, byte[] data) {
-            string pathFez = ins.ExeMod.Dir.FullName;
-            string pathCache = Path.Combine(pathFez, "FEZModCache");
+            string pathGame = ins.MainMod.Dir.FullName;
+            string pathCache = Path.Combine(pathGame, "ModCache");
             if (!Directory.Exists(pathCache)) {
                 Directory.CreateDirectory(pathCache);
+            }
+
+            if (cached == "ETGMOD.zip") {
+                // The API's not cached... unless someone's offline
+                cached = "offline-ETGMOD.zip";
             }
             
             string cachedPath = Path.Combine(pathCache, cached);
@@ -348,20 +313,20 @@ namespace FezGame.Mod.Installer {
         }
         
         public static void ClearCache(this InstallerWindow ins) {
-            if (ins.ExeMod == null) {
+            if (ins.MainMod == null) {
                 return;
             }
 
-            string pathFez = ins.ExeMod.Dir.FullName;
-            string pathCache = Path.Combine(pathFez, "FEZModCache");
+            string pathGame = ins.MainMod.Dir.FullName;
+            string pathCache = Path.Combine(pathGame, "ModCache");
             if (!Directory.Exists(pathCache)) {
                 return;
             }
 
-            ins.LogLine("Clearing FEZMod cache...");
+            ins.LogLine("Clearing mod cache...");
 
             string[] files = Directory.GetFiles(pathCache);
-            ins.InitProgress("Clearing FEZMod cache", files.Length + 1);
+            ins.InitProgress("Clearing mod cache", files.Length + 1);
             for (int i = 0; i < files.Length; i++) {
                 string file = Path.GetFileName(files[i]);
                 ins.Log("Removing: ").LogLine(file);
@@ -374,7 +339,7 @@ namespace FezGame.Mod.Installer {
 
 		private static long getLength(string url) {
 			HttpWebRequest request = (HttpWebRequest) WebRequest.Create(url);
-			request.UserAgent = "FEZMod Installer";
+			request.UserAgent = "ETGMod Installer";
 			request.Method = "HEAD";
 
 			using (HttpWebResponse response = (HttpWebResponse) request.GetResponse()) {
@@ -390,7 +355,7 @@ namespace FezGame.Mod.Installer {
         
         public static bool UnzipMod(this InstallerWindow ins, Stream zs) {
             string platform = "";
-            string os = FezFinder.GetPlatform().ToString().ToLower();
+            string os = ETGFinder.GetPlatform().ToString().ToLower();
             if (os.Contains("win")) {
                 platform = "win32";
 
@@ -402,16 +367,10 @@ namespace FezGame.Mod.Installer {
 
             }
 
-            string prefix = "FEZMOD";
-            int v = int.Parse(ins.FezVersion.Substring(2));
-            if (12 <= v) {
-                prefix += "-FNA";
-                ins.LogLine("FEZ 1.12 has switched from MonoGame to FNA.");
-                ins.LogLine("Make sure the version you've picked is supported!");
-            }
+            string prefix = "ETGMOD";
             prefix += "/";
             
-            string pathFez = ins.ExeMod.Dir.FullName;
+            string pathGame = ins.MainMod.Dir.FullName;
             
             ins.Log("Checking for ").Log(prefix).LogLine("...");
             
@@ -432,14 +391,10 @@ namespace FezGame.Mod.Installer {
                             using (StreamReader sr = new StreamReader(s)) {
                                 Version minv = new Version(sr.ReadLine().Trim());
                                 if (InstallerWindow.Version < minv) {
-                                    ins.LogLine("There's a new FEZMod Installer version!");
-                                    ins.LogLine("Visit https://fezmod.xyz/#download to download it.");
-                                    ins.Log("(Minimum installer version for this FEZMod version: ").LogLine(minv.ToString()).Log(")");
+                                    ins.LogLine("There's a new ETGMod Installer version!");
+                                    ins.LogLine("Visit https://0x0ade.github.io/etgmod/#download to download it.");
+                                    ins.Log("(Minimum installer version for this ETGMod version: ").LogLine(minv.ToString()).Log(")");
                                     return false;
-                                }
-                                if (new Version(16, 5, 10) <= minv) {
-                                    ins.LogLine("Blacklisting FEZMod.Speedrun as it's obsolete and causes upgrading issues");
-                                    Blacklist.Add("FEZ.Speedrun.mm.dll");
                                 }
                             }
                         }
@@ -450,7 +405,7 @@ namespace FezGame.Mod.Installer {
                     string entryName = entry.FullName;
                     if (entry.FullName.StartsWith(prefix)) {
                         prefixCount++;
-                    } else if (entry.FullName.StartsWith("FEZMOD/")) {
+                    } else if (entry.FullName.StartsWith("ETGMOD/")) {
                         fallbackCount++;
                     } else {
                         noneCount++;
@@ -465,7 +420,7 @@ namespace FezGame.Mod.Installer {
                     ins.EndProgress("Halted.").SetProgress(0);
                     return false;
                 } else {
-                    ins.LogLine("Is this even a FEZMod ZIP? uh...");
+                    ins.LogLine("Is this even a ETGMod ZIP? uh...");
                     prefix = "";
                     ins.InitProgress("Extracting ZIP", noneCount);
                 }
@@ -490,7 +445,7 @@ namespace FezGame.Mod.Installer {
 
                     entryName = entryName.Replace('/', Path.DirectorySeparatorChar);
 
-                    string path = Path.Combine(pathFez, entryName);
+                    string path = Path.Combine(pathGame, entryName);
                     ins.Log("Extracting: ").Log(entry.FullName).Log(" -> ").LogLine(path);
                     if (entry.Length == 0 && entry.CompressedLength == 0) {
                         Directory.CreateDirectory(path);
@@ -506,7 +461,7 @@ namespace FezGame.Mod.Installer {
         }
         
         public static bool Mod(this InstallerWindow ins, string file) {
-            MonoMod.MonoMod monomod = new MonoMod.MonoMod(Path.Combine(ins.ExeMod.Dir.FullName, file));
+            MonoMod.MonoMod monomod = new MonoMod.MonoMod(Path.Combine(ins.MainMod.Dir.FullName, file));
             monomod.Out = monomod.In;
             using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
                 using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
@@ -523,17 +478,17 @@ namespace FezGame.Mod.Installer {
         }
         
         public static bool Mod(this InstallerWindow ins) {
-            ins.ExeMod.Out = ins.ExeMod.In;
-            //We need to reload the FEZ.exe dependencies here.
-            //As they've been patched, FEZ.exe will otherwise refer to the .mm assemblies.
-            ins.ExeMod.Module = null;
-            ins.ExeMod.Dependencies.Clear();
+            ins.MainMod.Out = ins.MainMod.In;
+            //We need to reload the main dependencies here.
+            //As they've been patched, Assembly-CSharp.dll will otherwise refer to the .mm assemblies.
+            ins.MainMod.Module = null;
+            ins.MainMod.Dependencies.Clear();
 
             using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
                 using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
-                    ins.ExeMod.Logger = (string s) => streamWriter.WriteLine(s);
+                    ins.MainMod.Logger = (string s) => streamWriter.WriteLine(s);
                     try {
-                        ins.ExeMod.AutoPatch(true, true);
+                        ins.MainMod.AutoPatch(true, true);
                         return true;
                     } catch (Exception e) {
                         ins.LogLine(e.ToString());

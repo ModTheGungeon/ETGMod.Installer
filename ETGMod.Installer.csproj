@@ -1,14 +1,29 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
-    <ProjectGuid>{7A9CABEA-E07B-41C5-80B7-72F2A00A463F}</ProjectGuid>
+    <ProjectGuid>{ABB09CCC-D5A8-42A9-A1EB-2ECFD4024528}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>FEZMod.Installer</RootNamespace>
-    <AssemblyName>FEZMod.Installer</AssemblyName>
+    <RootNamespace>ETGMod.Installer</RootNamespace>
+    <AssemblyName>ETGMod.Installer</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <ApplicationIcon>Assets\icons\app.ico</ApplicationIcon>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
@@ -41,16 +56,30 @@
     <Reference Include="System.IO.Compression.FileSystem" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DeobfuscatorExt.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="InstallerWindow.cs" />
-    <Compile Include="CustomControls.cs" />
-    <Compile Include="FezFinder.cs" />
-    <Compile Include="VersionHelper.cs" />
-    <Compile Include="FezModder.cs" />
+    <Compile Include="InstallerWindow.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="CustomControls.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ETGFinder.cs" />
+    <Compile Include="RepoHelper.cs" />
+    <Compile Include="ETGModder.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <Folder Include="Assets\" />
+    <BootstrapperPackage Include=".NETFramework,Version=v4.5">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.5 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\background.png" />
