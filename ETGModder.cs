@@ -41,24 +41,36 @@ namespace ETGModInstaller {
             if (!ins.UnzipMod(ins.DownloadCached(RepoHelper.ETGModURL, "ETGMOD.zip"))) {
                 return;
             }
-            if (ins.VersionTabs.SelectedIndex == 0) {
-                for (int i = 0; i < ins.APIModsList.SelectedIndices.Count; i++) {
-                    Tuple<string, string> t = ins.APIMods[i];
-                    ins.Log("Mod #").Log((i + 1).ToString()).Log(": ").LogLine(t.Item1);
-                    if (!ins.UnzipMod(ins.DownloadCached(t.Item2, t.Item1 + ".zip"))) {
-                        return;
-                    }
+            int mi = 0;
+
+            int[] selectedIndices = null;
+            ins.Invoke(delegate() {
+                int[] _selectedIndices = new int[ins.APIModsList.SelectedIndices.Count];
+                ins.APIModsList.SelectedIndices.CopyTo(_selectedIndices, 0);
+                selectedIndices = _selectedIndices;
+            });
+            while (selectedIndices == null) {
+                System.Threading.Thread.Sleep(100);
+            }
+
+            for (int i = 0; i < selectedIndices.Length; i++) {
+                Tuple<string, string> t = ins.APIMods[selectedIndices[i]];
+                ins.Log("Mod #").Log((++mi).ToString()).Log(": ").LogLine(t.Item1);
+                if (!ins.UnzipMod(ins.DownloadCached(t.Item2, t.Item1 + ".zip"))) {
+                    return;
                 }
-            } else if (ins.VersionTabs.SelectedIndex == 2) {
-                string path = ins.ManualPathBox.Text;
+            }
+
+            for (int pi = 0; pi < ins.ManualPathBoxes.Count; pi++) {
+                string path = ins.ManualPathBoxes[pi].Text;
 
                 if (path.ToLower().EndsWith(".zip")) {
-                    ins.LogLine("ETGMod Manual ZIP");
+                    ins.Log("Mod #").Log((++mi).ToString()).Log(": ZIP: ").LogLine(path);
                     if (!ins.UnzipMod(File.OpenRead(path))) {
                         return;
                     }
                 } else {
-                    ins.LogLine("ETGMod Manual Folder");
+                    ins.Log("Mod #").Log((++mi).ToString()).Log(": Folder: ").LogLine(path);
 
                     string pathGame = ins.MainMod.Dir.FullName;
                     string[] files = Directory.GetFiles(path);

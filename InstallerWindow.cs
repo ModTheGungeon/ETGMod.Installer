@@ -21,7 +21,8 @@ namespace ETGModInstaller {
 
         public static InstallerWindow Instance;
 
-        public OpenFileDialog OpenFileDialog;
+        public OpenFileDialog OpenExeDialog;
+        public OpenFileDialog OpenModDialog;
         
         public RichTextBox LogBox;
 
@@ -30,8 +31,11 @@ namespace ETGModInstaller {
         public Label ExeStatusLabel;
         public TabControl VersionTabs;
         public ListBox APIModsList;
-        public TextBox ManualPathBox;
-        public Button ManualPathButton;
+        public Panel ManualPanel;
+        public List<TextBox> ManualPathBoxes = new List<TextBox>();
+        public List<Button> ManualRemoveButtons = new List<Button>();
+        public Button ManualAddButton;
+        public Label ManualLabel;
         public Button InstallButton;
         public Button UninstallButton;
         public CustomProgress Progress;
@@ -120,8 +124,8 @@ namespace ETGModInstaller {
                 ImageAlign = ContentAlignment.MiddleCenter
             });
             ExePathButton.Click += delegate(object senderClick, EventArgs eClick) {
-                if (OpenFileDialog == null) {
-                    OpenFileDialog = new OpenFileDialog() {
+                if (OpenExeDialog == null) {
+                    OpenExeDialog = new OpenFileDialog() {
                         Title = "Select " + ETGFinder.GetMainName(),
                         AutoUpgradeEnabled = true,
                         CheckFileExists = true,
@@ -132,11 +136,11 @@ namespace ETGModInstaller {
                         Filter = ETGFinder.GetMainName() + "|" + ETGFinder.GetMainName()  + "| All files|*.*",
                         FilterIndex = 0
                     };
-                    OpenFileDialog.FileOk +=
-                        (object senderFileOk, CancelEventArgs eFileOk) => Task.Run(() => this.ExeSelected(OpenFileDialog.FileNames[0]));
+                    OpenExeDialog.FileOk +=
+                        (object senderFileOk, CancelEventArgs eFileOk) => Task.Run(() => this.ExeSelected(OpenExeDialog.FileNames[0]));
                 }
-                
-                OpenFileDialog.ShowDialog(this);
+
+                OpenExeDialog.ShowDialog(this);
             };
             AddOffset += 2;
             
@@ -191,45 +195,83 @@ namespace ETGModInstaller {
             });
             
             VersionTabs.TabPages.Add(new TabPage("Advanced"));
-            Panel manualPanel;
-            VersionTabs.TabPages[1].Controls.Add(manualPanel = new Panel() {
+            VersionTabs.TabPages[1].Controls.Add(ManualPanel = new Panel() {
                 Dock = DockStyle.Fill
             });
-            manualPanel.Controls.Add(new Label() {
-                Bounds = new Rectangle(0, 24, VersionTabs.Width - 8, 24),
-                Text = "or drag-and-drop a folder / .zip here",
-                TextAlign = ContentAlignment.MiddleCenter
-            });
-            manualPanel.Controls.Add(ManualPathBox = new TextBox() {
-                Bounds = new Rectangle(0, 0, VersionTabs.Width - 32 - 8, 24),
-                ReadOnly = true
-            });
-            manualPanel.Controls.Add(ManualPathButton = new Button() {
-                Bounds = new Rectangle(ManualPathBox.Bounds.X + ManualPathBox.Bounds.Width, ManualPathBox.Bounds.Y, 32, ManualPathBox.Bounds.Height),
+            ManualPanel.Controls.Add(ManualAddButton = new Button() {
                 Image = LoadAsset<Image>("icons.open"),
                 ImageAlign = ContentAlignment.MiddleCenter
             });
-            ManualPathButton.Click += delegate(object senderClick, EventArgs eClick) {
-                if (OpenFileDialog == null) {
-                    OpenFileDialog = new OpenFileDialog() {
+            ManualPanel.Controls.Add(ManualLabel = new Label() {
+                Text = "or drag-and-drop a folder / .zip here",
+                TextAlign = ContentAlignment.MiddleCenter
+            });
+            ManualAddButton.Click += delegate(object senderClick, EventArgs eClick) {
+                if (OpenModDialog == null) {
+                    OpenModDialog = new OpenFileDialog() {
                         Title = "Select ETGMod ZIP",
                         AutoUpgradeEnabled = true,
                         CheckFileExists = true,
                         CheckPathExists = true,
                         ValidateNames = true,
-                        Multiselect = false,
+                        Multiselect = true,
                         ShowReadOnly = false,
                         Filter = "ETGMod ZIP|*.zip|All files|*.*",
                         FilterIndex = 0
                     };
-                    OpenFileDialog.FileOk +=
-                        (object senderFileOk, CancelEventArgs eFileOk) => ManualPathBox.Text = OpenFileDialog.FileNames[0];
+                    OpenModDialog.FileOk +=
+                        (object senderFileOk, CancelEventArgs eFileOk) => AddManualPathRows(OpenModDialog.FileNames);
                 }
 
-                OpenFileDialog.ShowDialog(this);
+                OpenModDialog.ShowDialog(this);
             };
+            RefreshManualPanel();
         }
-        
+
+        public void AddManualPathRows(string[] paths) {
+            for (int i = 0; i < paths.Length; i++) {
+                AddManualPathRow(paths[i]);
+            }
+        }
+
+        public void AddManualPathRow(string path) {
+            TextBox pathBox;
+            ManualPanel.Controls.Add(pathBox = new TextBox() {
+                ReadOnly = true,
+                Text = path
+            });
+            ManualPathBoxes.Add(pathBox);
+            Button removeButton;
+            ManualPanel.Controls.Add(removeButton = new Button() {
+                Bounds = new Rectangle(),
+                Image = LoadAsset<Image>("icons.uninstall"),
+                ImageAlign = ContentAlignment.MiddleCenter
+            });
+            ManualRemoveButtons.Add(removeButton);
+            removeButton.Click += delegate (object senderClick, EventArgs eClick) {
+                ManualPanel.Controls.Remove(pathBox);
+                ManualPathBoxes.Remove(pathBox);
+                ManualPanel.Controls.Remove(removeButton);
+                ManualRemoveButtons.Remove(removeButton);
+                RefreshManualPanel();
+            };
+
+            RefreshManualPanel();
+        }
+
+        public void RefreshManualPanel() {
+            int y = 0;
+            for (int i = 0; i < ManualPathBoxes.Count; i++) {
+                TextBox pathBox = ManualPathBoxes[i];
+                Button removeButton = ManualRemoveButtons[i];
+                pathBox.Bounds = new Rectangle(0, y, VersionTabs.Width - 32 - 8, 24);
+                removeButton.Bounds = new Rectangle(pathBox.Bounds.X + pathBox.Bounds.Width, pathBox.Bounds.Y, 32, pathBox.Bounds.Height);
+                y += pathBox.Bounds.Height;
+            }
+
+            ManualAddButton.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
+            ManualLabel.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
+        }
         public InstallerWindow SetMainEnabled(bool enabled) {
             return Invoke(delegate() {
                 ExePathBox.Enabled = enabled;
@@ -365,7 +407,7 @@ namespace ETGModInstaller {
         private void onDragDrop(object sender, DragEventArgs e) {
             string[] files = e.Data.GetData(DataFormats.FileDrop) as string[];
             if (files != null && 0 < files.Length && Directory.Exists(files[0]) || files[0].ToLower().EndsWith(".zip")) {
-                ManualPathBox.Text = files[0];
+                AddManualPathRow(files[0]);
             }
         }
 
