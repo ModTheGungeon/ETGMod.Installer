@@ -72,9 +72,6 @@ namespace ETGModInstaller {
                 } else if (path.ToLower().EndsWith(".mm.dll")) {
                     ins.Log("Mod #").Log((++mi).ToString()).Log(": DLL: ").LogLine(path);
                     File.Copy(path, Path.Combine(ins.MainMod.Dir.FullName, Path.GetFileName(path)), true);
-                    if (!ins.UnzipMod(File.OpenRead(path))) {
-                        return;
-                    }
                 } else {
                     ins.Log("Mod #").Log((++mi).ToString()).Log(": Folder: ").LogLine(path);
 
