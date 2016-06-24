@@ -216,7 +216,7 @@ namespace ETGModInstaller {
                         ValidateNames = true,
                         Multiselect = true,
                         ShowReadOnly = false,
-                        Filter = "ETGMod ZIP|*.zip|All files|*.*",
+                        Filter = "ETGMod ZIP|*.zip|ETGMod DLL|Assembly-CSharp.*.mm.dll|All files|*.*",
                         FilterIndex = 0
                     };
                     OpenModDialog.FileOk +=
@@ -406,7 +406,10 @@ namespace ETGModInstaller {
 
         private void onDragDrop(object sender, DragEventArgs e) {
             string[] files = e.Data.GetData(DataFormats.FileDrop) as string[];
-            if (files != null && 0 < files.Length && Directory.Exists(files[0]) || files[0].ToLower().EndsWith(".zip")) {
+            if (files != null && 0 < files.Length && Directory.Exists(files[0]) ||
+                files[0].ToLower().EndsWith(".zip") ||
+                (Path.GetFileName(files[0]).StartsWith("Assembly-CSharp.") && files[0].ToLower().EndsWith(".mm.dll"))
+            ) {
                 AddManualPathRow(files[0]);
             }
         }
