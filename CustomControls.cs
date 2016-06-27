@@ -21,7 +21,7 @@ namespace ETGModInstaller {
         protected override CreateParams CreateParams {
             get {
                 CreateParams parms = base.CreateParams;
-                parms.ExStyle |= 0x20; //WS_EX_TRANSPARENT
+                parms.ExStyle |= 0x20; // WS_EX_TRANSPARENT
                 return parms;
             }
         }

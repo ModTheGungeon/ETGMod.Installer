@@ -29,7 +29,8 @@ namespace ETGModInstaller {
             
             //Clean the game from any previous installation
             ins.Uninstall();
-            
+
+            ins.Backup("UnityEngine.dll");
             ins.Backup("Assembly-CSharp.dll");
 
             //FIXME DEOBFUSCATE
@@ -124,7 +125,11 @@ namespace ETGModInstaller {
             ins.LogLine("here. Please put that debug stuff onto http://hastebin.com/ and");
             ins.LogLine("send it to @0x0ade on Twitter or the #modding channel in Discord.");
             ins.LogLine();
-            
+
+            if (!ins.Mod("UnityEngine.dll")) {
+                return;
+            }
+
             if (!ins.Mod()) {
                 return;
             }

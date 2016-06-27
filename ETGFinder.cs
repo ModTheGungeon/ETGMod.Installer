@@ -159,13 +159,6 @@ namespace ETGModInstaller {
                 return;
             }
             
-            /* Gungeon version, according to Gungeon:
-            TextAsset textAsset = Resources.Load<TextAsset>("version");
-		    if (textAsset != null) {
-			    UnityEngine.Debug.Log("Version: " + textAsset.text);
-		    }
-            */
-
             TypeDefinition ModType = ins.MainMod.Module.GetType("ETGMod");
             if (ModType != null) {
                 MethodDefinition ModCctor = null;
@@ -184,7 +177,7 @@ namespace ETGModInstaller {
                     if (!(ModCctor.Body.Instructions[i].Operand is FieldReference)) {
                         continue;
                     }
-                    if (((FieldReference) ModCctor.Body.Instructions[i].Operand).Name == "Version") {
+                    if (((FieldReference) ModCctor.Body.Instructions[i].Operand).Name == "BaseVersionString") {
                         ins.ModVersion = getString(ModCctor.Body.Instructions, i-1);
                         break;
                     }
