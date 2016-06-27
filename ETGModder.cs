@@ -4,11 +4,22 @@ using System.IO;
 using System.Net;
 using System.Globalization;
 using System.IO.Compression;
+using System.Text;
 
 namespace ETGModInstaller {
     public static class ETGModder {
 
         public static string LogPath;
+        public static string ExePath;
+
+        public static List<Tuple<byte[], byte[]>> NativeResourceReplacementMap = GenOrigReplacementMap(
+            "Load",
+            "LoadAsync",
+            "LoadAll",
+            "GetBuiltinResource",
+            "UnloadAsset",
+            "UnloadUnusedAssets"
+        );
 
         public static List<string> Blacklist = new List<string>();
         
@@ -21,7 +32,8 @@ namespace ETGModInstaller {
         }
         
         private static void Install_(this InstallerWindow ins) {
-            ins.Invoke(() => ins.LogBox.Visible = true).SetMainEnabled(false);
+            ins.Invoke(() => ins.LogBox.Visible = true).Invoke(() => ExePath = ins.ExePathBox.Text).SetMainEnabled(false);
+            ins.Wait();
             
             Directory.SetCurrentDirectory(ins.MainMod.Dir.FullName);
             
@@ -32,8 +44,8 @@ namespace ETGModInstaller {
 
             ins.Backup("UnityEngine.dll");
             ins.Backup("Assembly-CSharp.dll");
+            ins.BackupETG();
 
-            //FIXME DEOBFUSCATE
             ins.PrepareDeobfuscator();
             ins.Deobfuscate("Assembly-CSharp.dll");
 
@@ -126,6 +138,8 @@ namespace ETGModInstaller {
             ins.LogLine("send it to @0x0ade on Twitter or the #modding channel in Discord.");
             ins.LogLine();
 
+            ins.PatchExe();
+
             if (!ins.Mod("UnityEngine.dll")) {
                 return;
             }
@@ -162,7 +176,19 @@ namespace ETGModInstaller {
             File.Copy(origPath, Path.Combine(pathBackup, file), true);
             return true;
         }
-        
+
+        public static bool BackupETG(this InstallerWindow ins) {
+            string pathGame = ins.MainMod.Dir.FullName;
+            string pathBackup = Path.Combine(pathGame, "ModBackup");
+            if (!Directory.Exists(pathBackup)) {
+                Directory.CreateDirectory(pathBackup);
+            }
+
+            ins.LogLine("Backing up: EtG.exe");
+            File.Copy(ExePath, Path.Combine(pathBackup, "EtG.exe"), true);
+            return true;
+        }
+
         public static void Uninstall(this InstallerWindow ins) {
             if (ins.MainMod == null) {
                 return;
@@ -192,6 +218,12 @@ namespace ETGModInstaller {
             } else {
                 ins.LogLine("No previous mod installation found.");
                 ins.LogLine("Still reverting to unmodded backup...");
+            }
+
+            string etgBackup = Path.Combine(pathBackup, "EtG.exe");
+            if (File.Exists(etgBackup)) {
+                File.Delete(ExePath);
+                File.Move(etgBackup, ExePath);
             }
 
             files = Directory.GetFiles(pathBackup);
@@ -479,7 +511,21 @@ namespace ETGModInstaller {
             
             return true;
         }
-        
+
+        public static void PatchExe(this InstallerWindow ins) {
+            string tmpPath = ExePath + ".tmp";
+            using (FileStream fi = File.OpenRead(ExePath)) { using (FileStream fo = File.OpenWrite(tmpPath)) {
+                using (BinaryReader bi = new BinaryReader(fi)) { using (BinaryWriter bo = new BinaryWriter(fo)) {
+                    ins.PatchExe(bi, bo);
+                } }
+            } }
+            File.Delete(ExePath);
+            File.Move(tmpPath, ExePath);
+        }
+        public static void PatchExe(this InstallerWindow ins, BinaryReader bi, BinaryWriter bo) {
+            BinaryHelper.Replace(bi, bo, NativeResourceReplacementMap);
+        }
+
         public static bool Mod(this InstallerWindow ins, string file) {
             MonoMod.MonoMod monomod = new MonoMod.MonoMod(Path.Combine(ins.MainMod.Dir.FullName, file));
             monomod.Out = monomod.In;
@@ -517,6 +563,19 @@ namespace ETGModInstaller {
                 }
             }
         }
-        
+
+        public static List<Tuple<byte[], byte[]>> GenOrigReplacementMap(params string[] sa) {
+            List<Tuple<byte[], byte[]>> l = new List<Tuple<byte[], byte[]>>(sa.Length);
+            for (int i = 0; i < sa.Length; i++) {
+                string s = sa[i];
+                l.Add(Tuple.Create(
+                    Encoding.ASCII.GetBytes("UnityEngine.Resources::" + s),
+                    Encoding.ASCII.GetBytes("UnityEngine.Resources::O" + s.Substring(1))
+                ));
+            }
+            return l;
+        }
+
+
     }
 }

@@ -56,7 +56,10 @@
     <Reference Include="System.IO.Compression.FileSystem" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BinaryHelper.cs" />
     <Compile Include="DeobfuscatorExt.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModOriginal.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModOriginalName.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="InstallerWindow.cs">
       <SubType>Form</SubType>
