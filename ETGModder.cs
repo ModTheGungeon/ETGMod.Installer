@@ -51,9 +51,19 @@ namespace ETGModInstaller {
 
             //Setup the files and MonoMod instances
             ins.LogLine("Mod #0: API MOD (ETGMod)");
+            //Check if the revision online is newer
+            RepoHelper.RevisionFile = Path.Combine(ins.MainMod.Dir.FullName, "ModCache", "ETGMOD_REVISION.txt");
+            int revisionOnline = RepoHelper.RevisionOnline;
+            if (RepoHelper.Revision < revisionOnline) {
+                string cachedPath = Path.Combine(ins.MainMod.Dir.FullName, "ModCache", "ETGMOD.zip");
+                if (File.Exists(cachedPath)) {
+                    File.Delete(cachedPath);
+                }
+            }
             if (!ins.UnzipMod(ins.DownloadCached(RepoHelper.ETGModURL, "ETGMOD.zip"))) {
                 return;
             }
+            RepoHelper.Revision = revisionOnline;
             int mi = 0;
 
             int[] selectedIndices = null;
@@ -350,11 +360,6 @@ namespace ETGModInstaller {
                 Directory.CreateDirectory(pathCache);
             }
 
-            if (cached == "ETGMOD.zip") {
-                // The API's not cached... unless someone's offline
-                cached = "offline-ETGMOD.zip";
-            }
-            
             string cachedPath = Path.Combine(pathCache, cached);
             if (File.Exists(cachedPath)) {
                 File.Delete(cachedPath);
