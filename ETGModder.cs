@@ -11,14 +11,15 @@ namespace ETGModInstaller {
 
         public static string LogPath;
         public static string ExePath;
+        public static string ExeBackupPath;
 
         public static List<Tuple<byte[], byte[]>> NativeResourceReplacementMap = GenOrigReplacementMap(
-            "Load",
-            "LoadAsync",
-            "LoadAll",
-            "GetBuiltinResource",
-            "UnloadAsset",
-            "UnloadUnusedAssets"
+            "UnityEngine.Resources", "Load",
+            "UnityEngine.Resources", "LoadAsync",
+            "UnityEngine.Resources", "LoadAll",
+            "UnityEngine.Resources", "GetBuiltinResource",
+            "UnityEngine.Resources", "UnloadAsset",
+            "UnityEngine.Resources", "UnloadUnusedAssets"
         );
 
         public static List<string> Blacklist = new List<string>();
@@ -194,8 +195,16 @@ namespace ETGModInstaller {
                 Directory.CreateDirectory(pathBackup);
             }
 
+            if (!File.Exists(ExePath)) {
+                return false;
+            }
+
             ins.LogLine("Backing up: EtG.exe");
-            File.Copy(ExePath, Path.Combine(pathBackup, "EtG.exe"), true);
+            ExeBackupPath = Path.Combine(pathBackup, "EtG.exe");
+            if (File.Exists(ExeBackupPath)) {
+                File.Delete(ExeBackupPath);
+            }
+            File.Move(ExePath, ExeBackupPath);
             return true;
         }
 
@@ -245,6 +254,7 @@ namespace ETGModInstaller {
                 string origPath = Path.Combine(pathGame, file);
                 File.Delete(origPath);
                 File.Move(files[i], origPath);
+                File.Delete(files[i]);
             }
 
             ins.LogLine("Reloading Assembly-CSharp.dll");
@@ -518,14 +528,11 @@ namespace ETGModInstaller {
         }
 
         public static void PatchExe(this InstallerWindow ins) {
-            string tmpPath = ExePath + ".tmp";
-            using (FileStream fi = File.OpenRead(ExePath)) { using (FileStream fo = File.OpenWrite(tmpPath)) {
-                using (BinaryReader bi = new BinaryReader(fi)) { using (BinaryWriter bo = new BinaryWriter(fo)) {
+            using (FileStream fo = File.OpenWrite(ExePath)) { using (FileStream fi = File.OpenRead(ExeBackupPath)) {
+                using (BinaryWriter bo = new BinaryWriter(fo)) { using (BinaryReader bi = new BinaryReader(fi)) {
                     ins.PatchExe(bi, bo);
                 } }
             } }
-            File.Delete(ExePath);
-            File.Move(tmpPath, ExePath);
         }
         public static void PatchExe(this InstallerWindow ins, BinaryReader bi, BinaryWriter bo) {
             BinaryHelper.Replace(bi, bo, NativeResourceReplacementMap);
@@ -570,12 +577,13 @@ namespace ETGModInstaller {
         }
 
         public static List<Tuple<byte[], byte[]>> GenOrigReplacementMap(params string[] sa) {
-            List<Tuple<byte[], byte[]>> l = new List<Tuple<byte[], byte[]>>(sa.Length);
-            for (int i = 0; i < sa.Length; i++) {
-                string s = sa[i];
+            List<Tuple<byte[], byte[]>> l = new List<Tuple<byte[], byte[]>>(sa.Length / 2);
+            for (int i = 0; i < sa.Length; i += 2) {
+                string c = sa[i];
+                string m = sa[i + 1];
                 l.Add(Tuple.Create(
-                    Encoding.ASCII.GetBytes("UnityEngine.Resources::" + s),
-                    Encoding.ASCII.GetBytes("UnityEngine.Resources::O" + s.Substring(1))
+                    Encoding.ASCII.GetBytes(c + "::" + m),
+                    Encoding.ASCII.GetBytes(c + "::O" + m.Substring(1))
                 ));
             }
             return l;

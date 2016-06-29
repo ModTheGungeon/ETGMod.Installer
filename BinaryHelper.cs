@@ -15,12 +15,12 @@ namespace ETGModInstaller {
     public static class BinaryHelper {
 
         public static IEnumerable<byte> GetByteStream(BinaryReader reader) {
-            const int bufferSize = 1024;
+            const int bufferSize = 8192;
             byte[] buffer;
             do {
                 buffer = reader.ReadBytes(bufferSize);
                 foreach (var d in buffer) { yield return d; }
-            } while (bufferSize == buffer.Length);
+            } while (buffer.Length != 0);
         }
 
         public static void Replace(BinaryReader reader, BinaryWriter writer, IEnumerable<Tuple<byte[], byte[]>> searchAndReplace) {
