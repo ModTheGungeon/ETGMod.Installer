@@ -16,10 +16,13 @@ using ContentAlignment = System.Drawing.ContentAlignment;
 
 namespace ETGModInstaller {
     public class InstallerWindow : Form {
-
+        
         public static Version Version = Assembly.GetEntryAssembly().GetName().Version;
 
         public static InstallerWindow Instance;
+
+        public Thread GUIThread;
+        private List<Action> delayed = new List<Action>();
 
         public OpenFileDialog OpenExeDialog;
         public OpenFileDialog OpenModDialog;
@@ -31,11 +34,12 @@ namespace ETGModInstaller {
         public Label ExeStatusLabel;
         public TabControl VersionTabs;
         public ListBox APIModsList;
-        public Panel ManualPanel;
-        public List<TextBox> ManualPathBoxes = new List<TextBox>();
-        public List<Button> ManualRemoveButtons = new List<Button>();
-        public Button ManualAddButton;
-        public Label ManualLabel;
+        public Panel AdvancedPanel;
+        public List<TextBox> AdvancedPathBoxes = new List<TextBox>();
+        public List<Button> AdvancedRemoveButtons = new List<Button>();
+        public Button AdvancedAddButton;
+        public Label AdvancedLabel;
+        public CheckBox AdvancedAutoRunCheckbox;
         public Button InstallButton;
         public Button UninstallButton;
         public CustomProgress Progress;
@@ -49,6 +53,9 @@ namespace ETGModInstaller {
         public MonoMod.MonoMod MainMod;
         
         public InstallerWindow() {
+            Instance = this;
+            HandleCreated += onHandleCreated;
+
             Text = "Mod the Gungeon Installer";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             ResizeRedraw = false;
@@ -133,7 +140,7 @@ namespace ETGModInstaller {
                         ValidateNames = true,
                         Multiselect = false,
                         ShowReadOnly = false,
-                        Filter = ETGFinder.GetMainName() + "|" + ETGFinder.GetMainName()  + "| All files|*.*",
+                        Filter = ETGFinder.GetMainName() + "|" + ETGFinder.GetMainName(),
                         FilterIndex = 0
                     };
                     OpenExeDialog.FileOk +=
@@ -195,18 +202,22 @@ namespace ETGModInstaller {
             });
             
             VersionTabs.TabPages.Add(new TabPage("Advanced"));
-            VersionTabs.TabPages[1].Controls.Add(ManualPanel = new Panel() {
+            VersionTabs.TabPages[1].Controls.Add(AdvancedPanel = new Panel() {
                 Dock = DockStyle.Fill
             });
-            ManualPanel.Controls.Add(ManualAddButton = new Button() {
+            AdvancedPanel.Controls.Add(AdvancedAddButton = new Button() {
                 Image = LoadAsset<Image>("icons.open"),
                 ImageAlign = ContentAlignment.MiddleCenter
             });
-            ManualPanel.Controls.Add(ManualLabel = new Label() {
+            AdvancedPanel.Controls.Add(AdvancedLabel = new Label() {
                 Text = "or drag-and-drop a folder / .zip here",
                 TextAlign = ContentAlignment.MiddleCenter
             });
-            ManualAddButton.Click += delegate(object senderClick, EventArgs eClick) {
+            AdvancedPanel.Controls.Add(AdvancedAutoRunCheckbox = new CheckBox() {
+                Text = "FORCE-EXIT " + ETGFinder.GetMainName() + " and run when ETGMod installed",
+                TextAlign = ContentAlignment.MiddleCenter
+            });
+            AdvancedAddButton.Click += delegate(object senderClick, EventArgs eClick) {
                 if (OpenModDialog == null) {
                     OpenModDialog = new OpenFileDialog() {
                         Title = "Select ETGMod ZIP",
@@ -236,23 +247,23 @@ namespace ETGModInstaller {
 
         public void AddManualPathRow(string path) {
             TextBox pathBox;
-            ManualPanel.Controls.Add(pathBox = new TextBox() {
+            AdvancedPanel.Controls.Add(pathBox = new TextBox() {
                 ReadOnly = true,
                 Text = path
             });
-            ManualPathBoxes.Add(pathBox);
+            AdvancedPathBoxes.Add(pathBox);
             Button removeButton;
-            ManualPanel.Controls.Add(removeButton = new Button() {
+            AdvancedPanel.Controls.Add(removeButton = new Button() {
                 Bounds = new Rectangle(),
                 Image = LoadAsset<Image>("icons.uninstall"),
                 ImageAlign = ContentAlignment.MiddleCenter
             });
-            ManualRemoveButtons.Add(removeButton);
+            AdvancedRemoveButtons.Add(removeButton);
             removeButton.Click += delegate (object senderClick, EventArgs eClick) {
-                ManualPanel.Controls.Remove(pathBox);
-                ManualPathBoxes.Remove(pathBox);
-                ManualPanel.Controls.Remove(removeButton);
-                ManualRemoveButtons.Remove(removeButton);
+                AdvancedPanel.Controls.Remove(pathBox);
+                AdvancedPathBoxes.Remove(pathBox);
+                AdvancedPanel.Controls.Remove(removeButton);
+                AdvancedRemoveButtons.Remove(removeButton);
                 RefreshManualPanel();
             };
 
@@ -261,16 +272,17 @@ namespace ETGModInstaller {
 
         public void RefreshManualPanel() {
             int y = 0;
-            for (int i = 0; i < ManualPathBoxes.Count; i++) {
-                TextBox pathBox = ManualPathBoxes[i];
-                Button removeButton = ManualRemoveButtons[i];
+            for (int i = 0; i < AdvancedPathBoxes.Count; i++) {
+                TextBox pathBox = AdvancedPathBoxes[i];
+                Button removeButton = AdvancedRemoveButtons[i];
                 pathBox.Bounds = new Rectangle(0, y, VersionTabs.Width - 32 - 8, 24);
                 removeButton.Bounds = new Rectangle(pathBox.Bounds.X + pathBox.Bounds.Width, pathBox.Bounds.Y, 32, pathBox.Bounds.Height);
                 y += pathBox.Bounds.Height;
             }
 
-            ManualAddButton.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
-            ManualLabel.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
+            AdvancedAddButton.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
+            AdvancedLabel.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
+            AdvancedAutoRunCheckbox.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
         }
         public InstallerWindow SetMainEnabled(bool enabled) {
             return Invoke(delegate() {
@@ -324,6 +336,16 @@ namespace ETGModInstaller {
         }
         
         public InstallerWindow Invoke(Action d) {
+            if (GUIThread == null) {
+                delayed.Add(d);
+                return this;
+            }
+
+            if (GUIThread == Thread.CurrentThread) {
+                d();
+                return this;
+            }
+
             base.Invoke(d);
             return this;
         }
@@ -409,7 +431,14 @@ namespace ETGModInstaller {
         
         private void onHandleCreated(object sender, EventArgs e) {
             HandleCreated -= onHandleCreated;
-            Task.Run((Action) ETGFinder.FindETG);
+            GUIThread = Thread.CurrentThread;
+
+            ETGInstallerSettings.Load();
+            ETGInstallerSettings.Save();
+
+            if (string.IsNullOrEmpty(ExePathBox.Text)) {
+                Task.Run((Action) ETGFinder.FindETG);
+            }
             Task.Run((Action) DownloadModsList);
         }
 
@@ -435,8 +464,7 @@ namespace ETGModInstaller {
             }
 
             Application.VisualStyleState = VisualStyleState.ClientAndNonClientAreasEnabled;
-            Instance = new InstallerWindow();
-            Instance.HandleCreated += Instance.onHandleCreated;
+            new InstallerWindow();
             
             ShowDialog:
             try {

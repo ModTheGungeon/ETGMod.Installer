@@ -5,6 +5,8 @@ using System.Net;
 using System.Globalization;
 using System.IO.Compression;
 using System.Text;
+using System.Diagnostics;
+using System.Threading;
 
 namespace ETGModInstaller {
     public static class ETGModder {
@@ -12,6 +14,7 @@ namespace ETGModInstaller {
         public static string LogPath;
         public static string ExePath;
         public static string ExeBackupPath;
+        public static bool AutoRun;
 
         public static List<Tuple<byte[], byte[]>> NativeResourceReplacementMap = GenOrigReplacementMap(
             "UnityEngine.Resources", "Load",
@@ -33,13 +36,38 @@ namespace ETGModInstaller {
         }
         
         private static void Install_(this InstallerWindow ins) {
-            ins.Invoke(() => ins.LogBox.Visible = true).Invoke(() => ExePath = ins.ExePathBox.Text).SetMainEnabled(false);
-            ins.Wait();
+            ins
+                .Invoke(() => ins.LogBox.Visible = true)
+                .Invoke(() => ExePath = ins.ExePathBox.Text)
+                .Invoke(() => AutoRun = ins.AdvancedAutoRunCheckbox.Checked)
+                .Invoke(ETGInstallerSettings.Save)
+                .SetMainEnabled(false)
+                .Wait();
             
             Directory.SetCurrentDirectory(ins.MainMod.Dir.FullName);
+
+            if (AutoRun) {
+                string etg = ETGFinder.GetProcessName();
+                Process[] processes = Process.GetProcesses(".");
+                for (int i = 0; i < processes.Length; i++) {
+                    Process p = processes[i];
+                    try {
+                        if (p.ProcessName != etg) {
+                            p.Dispose();
+                            continue;
+                        }
+                        p.Kill();
+                        p.Dispose();
+                        Thread.Sleep(250);
+                    } catch (Exception) {
+                        //probably the service acting up or a process quitting
+                        p.Dispose();
+                    }
+                }
+            }
             
             ins.LogLine("Entering the Modgeon");
-            
+
             //Clean the game from any previous installation
             ins.Uninstall();
 
@@ -85,8 +113,8 @@ namespace ETGModInstaller {
                 }
             }
 
-            for (int pi = 0; pi < ins.ManualPathBoxes.Count; pi++) {
-                string path = ins.ManualPathBoxes[pi].Text;
+            for (int pi = 0; pi < ins.AdvancedPathBoxes.Count; pi++) {
+                string path = ins.AdvancedPathBoxes[pi].Text;
 
                 if (path.ToLower().EndsWith(".zip")) {
                     ins.Log("Mod #").Log((++mi).ToString()).Log(": ZIP: ").LogLine(path);
@@ -167,8 +195,14 @@ namespace ETGModInstaller {
             ins.LogLine("then go to EtG_Data (that scary folder with many files),");
             ins.LogLine("upload output_log.txt somewhere and give it @0x0ade.");
             ins.LogLine("Good luck - Have fun!");
-            ins.ExeSelected(ins.MainMod.In.FullName, " [just installed]");
+            ins.ExeSelected(ExePath, " [just installed]");
             ins.SetMainEnabled(true);
+
+            if (AutoRun) {
+                Process etg = new Process();
+                etg.StartInfo.FileName = ExePath;
+                etg.Start();
+            }
         }
         
         public static bool Backup(this InstallerWindow ins, string file) {
@@ -213,6 +247,9 @@ namespace ETGModInstaller {
                 return;
             }
 
+            // Uninstall can be invoked without the installer running
+            ins.Invoke(() => ExePath = ins.ExePathBox.Text).Wait();
+
             string pathGame = ins.MainMod.Dir.FullName;
             string pathBackup = Path.Combine(pathGame, "ModBackup");
             if (!Directory.Exists(pathBackup)) {
@@ -254,7 +291,6 @@ namespace ETGModInstaller {
                 string origPath = Path.Combine(pathGame, file);
                 File.Delete(origPath);
                 File.Move(files[i], origPath);
-                File.Delete(files[i]);
             }
 
             ins.LogLine("Reloading Assembly-CSharp.dll");
@@ -533,6 +569,20 @@ namespace ETGModInstaller {
                     ins.PatchExe(bi, bo);
                 } }
             } }
+
+            string os = ETGFinder.GetPlatform().ToString().ToLower();
+            if (os.Contains("win")) {
+                // Windows doesn't have an executable bit
+
+            } else if (os.Contains("mac") || os.Contains("osx") || os.Contains("lin") || os.Contains("unix")) {
+                Process chmod = new Process();
+                chmod.StartInfo.FileName = "chmod";
+                chmod.StartInfo.Arguments = "a+x \"" + ExePath + "\"";
+                chmod.StartInfo.CreateNoWindow = true;
+                chmod.StartInfo.UseShellExecute = false;
+                chmod.Start();
+                chmod.WaitForExit();
+            }
         }
         public static void PatchExe(this InstallerWindow ins, BinaryReader bi, BinaryWriter bo) {
             BinaryHelper.Replace(bi, bo, NativeResourceReplacementMap);
@@ -588,7 +638,6 @@ namespace ETGModInstaller {
             }
             return l;
         }
-
 
     }
 }

@@ -48,6 +48,7 @@ namespace ETGModInstaller {
             }
         }
 
+        public static Action GetAPIModsCallback;
         public static List<Tuple<string, string>> GetAPIMods() {
             string data = null;
             using (WebClient wc = new WebClient()) {
@@ -64,6 +65,8 @@ namespace ETGModInstaller {
                 string[] split = lines[i].Trim().Split('|');
                 versions.Add(Tuple.Create(split[0], split[1]));
             }
+
+            GetAPIModsCallback?.Invoke();
             
             return versions;
         }
