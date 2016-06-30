@@ -13,12 +13,11 @@ namespace ETGModInstaller {
 
         public static string ConfigurationPath {
             get {
-                string os = ETGFinder.GetPlatform().ToString().ToLower();
-                if (os.Contains("win")) {
+                if (ETGFinder.Platform.HasFlag(ETGPlatform.Windows)) {
                     return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "etgmodconfig.txt");
-                } else if (os.Contains("mac") || os.Contains("osx")) {
+                } else if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
                     return Path.Combine(Environment.GetEnvironmentVariable("HOME"), ".etgmodconfig.txt");
-                } else if (os.Contains("lin") || os.Contains("unix")) {
+                } else if (ETGFinder.Platform.HasFlag(ETGPlatform.Linux)) {
                     string xdg = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
                     if (string.IsNullOrWhiteSpace(xdg)) {
                         xdg = Path.Combine(Environment.GetEnvironmentVariable("HOME"), ".config");

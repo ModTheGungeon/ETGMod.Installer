@@ -461,15 +461,14 @@ namespace ETGModInstaller {
         
         public static bool UnzipMod(this InstallerWindow ins, Stream zs) {
             string platform = "";
-            string os = ETGFinder.GetPlatform().ToString().ToLower();
-            if (os.Contains("win")) {
+            if (ETGFinder.Platform.HasFlag(ETGPlatform.Windows)) {
                 platform = "win32";
 
-            } else if (os.Contains("mac") || os.Contains("osx")) {
+            } else if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
                 platform = "osx";
 
-            } else if (os.Contains("lin") || os.Contains("unix")) {
-                platform = IntPtr.Size == 4 ? "lib" : /*== 8*/ "lib64";
+            } else if (ETGFinder.Platform.HasFlag(ETGPlatform.Linux)) {
+                platform = ETGFinder.Platform.HasFlag(ETGPlatform.X64) ? "lib64" : "lib";
 
             }
 
@@ -573,11 +572,10 @@ namespace ETGModInstaller {
                 } }
             } }
 
-            string os = ETGFinder.GetPlatform().ToString().ToLower();
-            if (os.Contains("win")) {
+            if (ETGFinder.Platform.HasFlag(ETGPlatform.Windows)) {
                 // Windows doesn't have an executable bit
 
-            } else if (os.Contains("mac") || os.Contains("osx") || os.Contains("lin") || os.Contains("unix")) {
+            } else if (ETGFinder.Platform.HasFlag(ETGPlatform.Unix)) {
                 Process chmod = new Process();
                 chmod.StartInfo.FileName = "chmod";
                 chmod.StartInfo.Arguments = "a+x \"" + ExePath + "\"";

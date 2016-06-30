@@ -17,15 +17,38 @@ namespace ETGModInstaller {
 
         public static string MainName {
             get {
-                string os = GetPlatform().ToString().ToLower();
-                return os.Contains("win") ? "EtG.exe" : IntPtr.Size == 4 ? "EtG.x86" : "EtG.x86_64";
+                if (Platform.HasFlag(ETGPlatform.Windows)) {
+                    return "EtG.exe";
+
+                } else if (Platform.HasFlag(ETGPlatform.MacOS)) {
+                    // MacOS is weird.
+                    // /Users/$USER/Library/Application Support/Steam/SteamApps/common/Enter the Gungeon/EtG_OSX.app/Contents/MacOS/EtG_OSX
+                    return "EtG_OSX";
+
+                } else if (Platform.HasFlag(ETGPlatform.Linux)) {
+                    return IntPtr.Size == 4 ? "EtG.x86" : "EtG.x86_64";
+
+                } else {
+                    return null;
+                }
             }
         }
 
         public static string ProcessName {
             get {
-                string os = GetPlatform().ToString().ToLower();
-                return os.Contains("win") ? "EtG" : IntPtr.Size == 4 ? "EtG.x86" : "EtG.x86_64";
+                if (Platform.HasFlag(ETGPlatform.Windows)) {
+                    return "EtG";
+
+                } else if (Platform.HasFlag(ETGPlatform.MacOS)) {
+                    // TODO
+                    return "EtG_OSX";
+
+                } else if (Platform.HasFlag(ETGPlatform.Linux)) {
+                    return IntPtr.Size == 4 ? "EtG.x86" : "EtG.x86_64";
+
+                } else {
+                    return null;
+                }
             }
         }
 
@@ -54,15 +77,10 @@ namespace ETGModInstaller {
                     }
                 }
             
-                //string os = Environment.OSVersion.Platform.ToString().ToLower();
-                //https://github.com/mono/mono/blob/master/mcs/class/corlib/System/Environment.cs
-                //if MacOSX, OSVersion.Platform returns Unix.
-                string os = GetPlatform().ToString().ToLower();
-            
-                if (path == null) {
+                if (path == null || Platform.HasFlag(ETGPlatform.MacOS)) { // TODO handle steam process path
                     Console.WriteLine("Found no Steam executable");
                 
-                    if (os.Contains("lin") || os.Contains("unix")) {
+                    if (Platform.HasFlag(ETGPlatform.Linux)) {
                         path = Path.Combine(Environment.GetEnvironmentVariable("HOME"), ".local/share/Steam");
                         if (!Directory.Exists(path)) {
                             return null;
@@ -70,28 +88,40 @@ namespace ETGModInstaller {
                             Console.WriteLine("At least Steam seems to be installed somewhere reasonable...");
                             path = Path.Combine(path, "distributionX_Y/steam");
                         }
+
+                    } else if (Platform.HasFlag(ETGPlatform.MacOS)) {
+                        //Users/$USER/Library/Application Support/Steam/SteamApps/common/Enter the Gungeon/EtG_OSX.app/
+                        path = Path.Combine("Users", Environment.GetEnvironmentVariable("USER"), "Library/Application Support/Steam");
+                        if (!Directory.Exists(path)) {
+                            return null;
+                        } else {
+                            Console.WriteLine("At least Steam seems to be installed somewhere reasonable...");
+                            //path = Path.Combine(path, "bin/steam"); //?
+                        }
                     } else {
                         return null;
                     }
                 }
             
             
-                if (os.Contains("win")) {
+                if (Platform.HasFlag(ETGPlatform.Windows)) {
                     //I think we're running in Windows right now...
                     path = Directory.GetParent(path).Parent.FullName; //PF/Steam[/bin/steam.exe]
                     Console.WriteLine("Windows Steam main dir " + path);
                 
-                } else if (os.Contains("mac") || os.Contains("osx")) {
+                } else if (Platform.HasFlag(ETGPlatform.MacOS)) {
                     //Guyse, we need a test case here!
-                    return null;
+                    Console.WriteLine("MacOS Steam main dir " + path);
+                    if (!Directory.Exists(path)) {
+                        return null;
+                    }
                 
-                } else if (os.Contains("lin") || os.Contains("unix")) {
+                } else if (Platform.HasFlag(ETGPlatform.Linux)) {
                     //Are you sure you want to forcibly remove everything from your home directory?
                     path = Directory.GetParent(path).Parent.FullName; //~/.local/share/Steam[/ubuntuX_Y/steam]
                     Console.WriteLine("Linux Steam main dir " + path);
                 
                 } else {
-                    Console.WriteLine("Unknown platform: " + os);
                     return null;
                 }
             
@@ -245,19 +275,68 @@ namespace ETGModInstaller {
             return s;
         }
 
-        public static PlatformID GetPlatform() {
-            //for mono, get from
-            //static extern PlatformID Platform
-            PropertyInfo property_platform = typeof(Environment).GetProperty("Platform", BindingFlags.NonPublic | BindingFlags.Static);
-            if (property_platform != null) {
-                return (PlatformID) property_platform.GetValue(null);
-            } else {
+        private static ETGPlatform _platform = ETGPlatform.Unknown;
+        public static ETGPlatform Platform {
+            get {
+                if (!_platform.HasFlag(ETGPlatform.Unknown)) {
+                    return _platform;
+                }
 
-                //for .net, use default value
-                return Environment.OSVersion.Platform;
+                //string os = Environment.OSVersion.Platform.ToString().ToLower();
+                //https://github.com/mono/mono/blob/master/mcs/class/corlib/System/Environment.cs
+                //if MacOSX, OSVersion.Platform returns Unix.
+
+                //for mono, get from
+                //static extern PlatformID Platform
+                PropertyInfo property_platform = typeof(Environment).GetProperty("Platform", BindingFlags.NonPublic | BindingFlags.Static);
+                string platID;
+                if (property_platform != null) {
+                    platID = property_platform.GetValue(null).ToString();
+                } else {
+                    //for .net, use default value
+                    platID = Environment.OSVersion.Platform.ToString();
+                }
+                platID = platID.ToLowerInvariant();
+
+                _platform = ETGPlatform.Unknown;
+                if (platID.Contains("win")) {
+                    _platform = ETGPlatform.Windows;
+                } else if (platID.Contains("mac") || platID.Contains("osx")) {
+                    _platform = ETGPlatform.MacOS;
+                } else if (platID.Contains("lin") || platID.Contains("unix")) {
+                    _platform = ETGPlatform.Linux;
+                }
+                _platform |= (IntPtr.Size == 4 ? ETGPlatform.X86 : ETGPlatform.X64);
+
+                return _platform;
             }
         }
         
+    }
+
+    public enum ETGPlatform : int {
+        None = 0,
+
+        // Underlying platform categories
+        OS = 1,
+
+        X86 = 0,
+        X64 = 2,
+
+        NT   = 4,
+        Unix = 8,
+
+        // Operating systems (OSes are always "and-equal" to OS)
+        Unknown   = OS |         16,
+        Windows   = OS | NT   |  32,
+        MacOS     = OS | Unix |  64,
+        Linux     = OS | Unix | 128,
+
+        // AMD64 (64bit) variants (always "and-equal" to X64)
+        Unknown64 = Unknown | X64,
+        Windows64 = Windows | X64,
+        MacOS64   = MacOS   | X64,
+        Linux64   = Linux   | X64,
     }
 }
  
