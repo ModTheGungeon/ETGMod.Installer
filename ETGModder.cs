@@ -47,7 +47,7 @@ namespace ETGModInstaller {
             Directory.SetCurrentDirectory(ins.MainMod.Dir.FullName);
 
             if (AutoRun) {
-                string etg = ETGFinder.GetProcessName();
+                string etg = ETGFinder.ProcessName;
                 Process[] processes = Process.GetProcesses(".");
                 for (int i = 0; i < processes.Length; i++) {
                     Process p = processes[i];
@@ -191,7 +191,7 @@ namespace ETGModInstaller {
             ins.LogLine("Back with the coffee? We're done! Look at the top-right!");
             ins.LogLine("You should see [just installed]. Feel free to start EtG.");
             ins.LogLine("If EtG crashes with ETGMod, go to the EtG folder (that one");
-            ins.Log("where ").Log(ETGFinder.GetMainName()).LogLine(" is, basically the path at the top-right),");
+            ins.Log("where ").Log(ETGFinder.MainName).LogLine(" is, basically the path at the top-right),");
             ins.LogLine("then go to EtG_Data (that scary folder with many files),");
             ins.LogLine("upload output_log.txt somewhere and give it @0x0ade.");
             ins.LogLine("Good luck - Have fun!");
@@ -233,8 +233,8 @@ namespace ETGModInstaller {
                 return false;
             }
 
-            ins.LogLine("Backing up: EtG.exe");
-            ExeBackupPath = Path.Combine(pathBackup, "EtG.exe");
+            ins.Log("Backing up: ").LogLine(ETGFinder.MainName);
+            ExeBackupPath = Path.Combine(pathBackup, ETGFinder.MainName);
             if (File.Exists(ExeBackupPath)) {
                 File.Delete(ExeBackupPath);
             }
@@ -276,10 +276,13 @@ namespace ETGModInstaller {
                 ins.LogLine("Still reverting to unmodded backup...");
             }
 
-            string etgBackup = Path.Combine(pathBackup, "EtG.exe");
+            string etgBackup = Path.Combine(pathBackup, ETGFinder.MainName);
+            ins.Log("Reverting: ").LogLine(ETGFinder.MainName);
             if (File.Exists(etgBackup)) {
                 File.Delete(ExePath);
                 File.Move(etgBackup, ExePath);
+            } else {
+                ins.Log("WARNING: Backup not found for ").LogLine(ETGFinder.MainName);
             }
 
             files = Directory.GetFiles(pathBackup);
@@ -637,6 +640,22 @@ namespace ETGModInstaller {
                 ));
             }
             return l;
+        }
+
+        public static string ToHexadecimalString(this byte[] data) {
+            return BitConverter.ToString(data).Replace("-", string.Empty);
+        }
+
+        public static bool ChecksumsEqual(this string[] a, string[] b) {
+            if (a.Length != b.Length) {
+                return false;
+            }
+            for (int i = 0; i < a.Length; i++) {
+                if (a[i].Trim() != b[i].Trim()) {
+                    return false;
+                }
+            }
+            return true;
         }
 
     }

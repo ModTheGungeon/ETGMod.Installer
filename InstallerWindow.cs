@@ -116,7 +116,7 @@ namespace ETGModInstaller {
             Add(new Label() {
                 //Font = GlobalFont,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Text = "Step 1: Select " + ETGFinder.GetMainName(),
+                Text = "Step 1: Select " + ETGFinder.MainName,
                 BackColor = Color.Transparent,
                 ForeColor = Color.Black
             });
@@ -133,14 +133,14 @@ namespace ETGModInstaller {
             ExePathButton.Click += delegate(object senderClick, EventArgs eClick) {
                 if (OpenExeDialog == null) {
                     OpenExeDialog = new OpenFileDialog() {
-                        Title = "Select " + ETGFinder.GetMainName(),
+                        Title = "Select " + ETGFinder.MainName,
                         AutoUpgradeEnabled = true,
                         CheckFileExists = true,
                         CheckPathExists = true,
                         ValidateNames = true,
                         Multiselect = false,
                         ShowReadOnly = false,
-                        Filter = ETGFinder.GetMainName() + "|" + ETGFinder.GetMainName(),
+                        Filter = ETGFinder.MainName + "|" + ETGFinder.MainName,
                         FilterIndex = 0
                     };
                     OpenExeDialog.FileOk +=
@@ -154,7 +154,7 @@ namespace ETGModInstaller {
             Add(ExeStatusLabel = new Label() {
                 //Font = GlobalFont,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Text = "No " + ETGFinder.GetMainName() + " selected",
+                Text = "No " + ETGFinder.MainName + " selected",
                 BackColor = Color.FromArgb(127, 255, 63, 63),
                 ForeColor = Color.Black
             });
@@ -185,7 +185,7 @@ namespace ETGModInstaller {
             UninstallButton.Click += (object senderClick, EventArgs eClick) => Task.Run(delegate() {
                 this.Uninstall();
                 this.ClearCache();
-                this.ExeSelected(MainMod.In.FullName, " [just uninstalled]");
+                this.ExeSelected(ExePathBox.Text, " [just uninstalled]");
                 this.SetMainEnabled(true);
             });
             
@@ -214,7 +214,7 @@ namespace ETGModInstaller {
                 TextAlign = ContentAlignment.MiddleCenter
             });
             AdvancedPanel.Controls.Add(AdvancedAutoRunCheckbox = new CheckBox() {
-                Text = "FORCE-EXIT " + ETGFinder.GetMainName() + " and run when ETGMod installed",
+                Text = "FORCE-EXIT " + ETGFinder.MainName + " and run when ETGMod installed",
                 TextAlign = ContentAlignment.MiddleCenter
             });
             AdvancedAddButton.Click += delegate(object senderClick, EventArgs eClick) {
@@ -436,7 +436,7 @@ namespace ETGModInstaller {
             ETGInstallerSettings.Load();
             ETGInstallerSettings.Save();
 
-            if (string.IsNullOrEmpty(ExePathBox.Text)) {
+            if (string.IsNullOrWhiteSpace(ExePathBox.Text)) {
                 Task.Run((Action) ETGFinder.FindETG);
             }
             Task.Run((Action) DownloadModsList);

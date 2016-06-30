@@ -15,106 +15,112 @@ using Mono.Cecil.Cil;
 namespace ETGModInstaller {
     public static class ETGFinder {
 
-        public static string GetMainName() {
-            string os = GetPlatform().ToString().ToLower();
-            return os.Contains("win") ? "EtG.exe" : IntPtr.Size == 4 ? "EtG.x86" : "EtG.x86_64";
-        }
-
-        public static string GetProcessName() {
-            string os = GetPlatform().ToString().ToLower();
-            return os.Contains("win") ? "EtG" : IntPtr.Size == 4 ? "EtG.x86" : "EtG.x86_64";
-        }
-
-        public static string GetSteamPath() {
-            Process[] processes = Process.GetProcesses(".");
-            string path = null;
-            
-            for (int i = 0; i < processes.Length; i++) {
-                Process p = processes[i];
-                
-                try {
-                    if (!p.ProcessName.Contains("steam") || path != null) {
-                        p.Dispose();
-                        continue;
-                    }
-                    
-                    if (p.MainModule.ModuleName.ToLower().Contains("steam")) {
-                        path = p.MainModule.FileName;
-                        Console.WriteLine("Steam found at " + path);
-                        p.Dispose();
-                    }
-                } catch (Exception) {
-                    //probably the service acting up or a process quitting
-                    p.Dispose();
-                }
+        public static string MainName {
+            get {
+                string os = GetPlatform().ToString().ToLower();
+                return os.Contains("win") ? "EtG.exe" : IntPtr.Size == 4 ? "EtG.x86" : "EtG.x86_64";
             }
+        }
+
+        public static string ProcessName {
+            get {
+                string os = GetPlatform().ToString().ToLower();
+                return os.Contains("win") ? "EtG" : IntPtr.Size == 4 ? "EtG.x86" : "EtG.x86_64";
+            }
+        }
+
+        public static string SteamPath {
+            get {
+                Process[] processes = Process.GetProcesses(".");
+                string path = null;
             
-            //string os = Environment.OSVersion.Platform.ToString().ToLower();
-            //https://github.com/mono/mono/blob/master/mcs/class/corlib/System/Environment.cs
-            //if MacOSX, OSVersion.Platform returns Unix.
-            string os = GetPlatform().ToString().ToLower();
-            
-            if (path == null) {
-                Console.WriteLine("Found no Steam executable");
+                for (int i = 0; i < processes.Length; i++) {
+                    Process p = processes[i];
                 
-                if (os.Contains("lin") || os.Contains("unix")) {
-                    path = Path.Combine(Environment.GetEnvironmentVariable("HOME"), ".local/share/Steam");
-                    if (!Directory.Exists(path)) {
-                        return null;
-                    } else {
-                        Console.WriteLine("At least Steam seems to be installed somewhere reasonable...");
-                        path = Path.Combine(path, "distributionX_Y/steam");
+                    try {
+                        if (!p.ProcessName.Contains("steam") || path != null) {
+                            p.Dispose();
+                            continue;
+                        }
+                    
+                        if (p.MainModule.ModuleName.ToLower().Contains("steam")) {
+                            path = p.MainModule.FileName;
+                            Console.WriteLine("Steam found at " + path);
+                            p.Dispose();
+                        }
+                    } catch (Exception) {
+                        //probably the service acting up or a process quitting
+                        p.Dispose();
                     }
+                }
+            
+                //string os = Environment.OSVersion.Platform.ToString().ToLower();
+                //https://github.com/mono/mono/blob/master/mcs/class/corlib/System/Environment.cs
+                //if MacOSX, OSVersion.Platform returns Unix.
+                string os = GetPlatform().ToString().ToLower();
+            
+                if (path == null) {
+                    Console.WriteLine("Found no Steam executable");
+                
+                    if (os.Contains("lin") || os.Contains("unix")) {
+                        path = Path.Combine(Environment.GetEnvironmentVariable("HOME"), ".local/share/Steam");
+                        if (!Directory.Exists(path)) {
+                            return null;
+                        } else {
+                            Console.WriteLine("At least Steam seems to be installed somewhere reasonable...");
+                            path = Path.Combine(path, "distributionX_Y/steam");
+                        }
+                    } else {
+                        return null;
+                    }
+                }
+            
+            
+                if (os.Contains("win")) {
+                    //I think we're running in Windows right now...
+                    path = Directory.GetParent(path).Parent.FullName; //PF/Steam[/bin/steam.exe]
+                    Console.WriteLine("Windows Steam main dir " + path);
+                
+                } else if (os.Contains("mac") || os.Contains("osx")) {
+                    //Guyse, we need a test case here!
+                    return null;
+                
+                } else if (os.Contains("lin") || os.Contains("unix")) {
+                    //Are you sure you want to forcibly remove everything from your home directory?
+                    path = Directory.GetParent(path).Parent.FullName; //~/.local/share/Steam[/ubuntuX_Y/steam]
+                    Console.WriteLine("Linux Steam main dir " + path);
+                
                 } else {
+                    Console.WriteLine("Unknown platform: " + os);
                     return null;
                 }
+            
+                //PF/Steam/SteamApps //~/.local/share/Steam/SteamApps
+                if (Directory.Exists(Path.Combine(path, "SteamApps"))) {
+                    path = Path.Combine(path, "SteamApps");
+                } else {
+                    path = Path.Combine(path, "steamapps");
+                }
+                path = Path.Combine(path, "common"); //SA/common
+            
+                path = Path.Combine(path, "Enter the Gungeon");
+                path = Path.Combine(path, ETGFinder.MainName);
+            
+                if (!File.Exists(path)) {
+                    Console.WriteLine("EtG not found at " + path + " (at least Steam found)");
+                    return null;
+                }
+            
+                Console.WriteLine("EtG found at " + path);
+            
+                return path;
             }
-            
-            
-            if (os.Contains("win")) {
-                //I think we're running in Windows right now...
-                path = Directory.GetParent(path).Parent.FullName; //PF/Steam[/bin/steam.exe]
-                Console.WriteLine("Windows Steam main dir " + path);
-                
-            } else if (os.Contains("mac") || os.Contains("osx")) {
-                //Guyse, we need a test case here!
-                return null;
-                
-            } else if (os.Contains("lin") || os.Contains("unix")) {
-                //Are you sure you want to forcibly remove everything from your home directory?
-                path = Directory.GetParent(path).Parent.FullName; //~/.local/share/Steam[/ubuntuX_Y/steam]
-                Console.WriteLine("Linux Steam main dir " + path);
-                
-            } else {
-                Console.WriteLine("Unknown platform: " + os);
-                return null;
-            }
-            
-            //PF/Steam/SteamApps //~/.local/share/Steam/SteamApps
-            if (Directory.Exists(Path.Combine(path, "SteamApps"))) {
-                path = Path.Combine(path, "SteamApps");
-            } else {
-                path = Path.Combine(path, "steamapps");
-            }
-            path = Path.Combine(path, "common"); //SA/common
-            
-            path = Path.Combine(path, "Enter the Gungeon");
-            path = Path.Combine(path, ETGFinder.GetMainName());
-            
-            if (!File.Exists(path)) {
-                Console.WriteLine("EtG not found at " + path + " (at least Steam found)");
-                return null;
-            }
-            
-            Console.WriteLine("EtG found at " + path);
-            
-            return path;
         }
-        
+
         public static void FindETG() {
             string path;
             
-            if ((path = ETGFinder.GetSteamPath()) != null) {
+            if ((path = ETGFinder.SteamPath) != null) {
                 try {
                     InstallerWindow.Instance.ExeSelected(path, " [auto - Steam]");
                 } catch (Exception e) {
@@ -143,7 +149,7 @@ namespace ETGModInstaller {
             string origPath = path;
             ins.Invoke(delegate() {
                 ins.InstallButton.Enabled = false;
-                ins.ExePathBox.Text = path;
+                ins.ExePathBox.Text = origPath;
                 ins.ExeStatusLabel.Text = "EtG [checking version]";
                 if (suffix != null) {
                     ins.ExeStatusLabel.Text += suffix;
@@ -162,7 +168,7 @@ namespace ETGModInstaller {
             if (path == null) {
                 ins.MainMod = null;
                 ins.Invoke(delegate () {
-                    ins.ExeStatusLabel.Text = "No " + GetMainName() + " selected";
+                    ins.ExeStatusLabel.Text = "No " + MainName + " selected";
                     ins.ExeStatusLabel.BackColor = Color.FromArgb(127, 255, 63, 63);
                     ins.ExePathBox.Text = "";
                     ins.InstallButton.Enabled = false;
@@ -180,6 +186,10 @@ namespace ETGModInstaller {
                 return;
             } catch (Exception e) {
                 //Something went wrong.
+                ins.Log("Something went horribly wrong after you've selected ").LogLine(MainName);
+                ins.LogLine("Blame 0x0ade and send him this log ASAP!");
+                ins.Log("PATH: ").LogLine(path);
+                ins.Log("DIR: ").LogLine(ins.MainMod.Dir.FullName);
                 ins.LogLine(e.ToString());
                 ins.ExeSelected(null);
                 return;
@@ -220,7 +230,8 @@ namespace ETGModInstaller {
                 if (suffix != null) {
                     ins.ExeStatusLabel.Text += suffix;
                 }
-                
+
+                ins.ExePathBox.Text = origPath;
                 ins.InstallButton.Enabled = true;
                 ETGInstallerSettings.Save();
             });
