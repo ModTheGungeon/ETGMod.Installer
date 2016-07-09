@@ -112,11 +112,11 @@ namespace ETGModInstaller {
                 //Font = GlobalFont,
                 Text = "Idle."
             });
-            
+
             Add(new Label() {
                 //Font = GlobalFont,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Text = "Step 1: Select " + ETGFinder.MainName,
+                Text = !ETGFinder.Platform.HasFlag(ETGPlatform.MacOS) ? ("Step 1: Select " + ETGFinder.MainName) : ("Step 1: Drag-n-drop EtG_OSX.app here"),
                 BackColor = Color.Transparent,
                 ForeColor = Color.Black
             });
@@ -444,11 +444,22 @@ namespace ETGModInstaller {
 
         private void onDragDrop(object sender, DragEventArgs e) {
             string[] files = e.Data.GetData(DataFormats.FileDrop) as string[];
-            if (files != null && 0 < files.Length && Directory.Exists(files[0]) ||
+            if (files == null || files.Length == 0) {
+                return;
+            }
+
+            if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS) &&
+                Directory.Exists(files[0]) &&
+                files[0].ToLower().EndsWith("EtG_OSX.app")) {
+                this.ExeSelected(Path.Combine(files[0], "Contents", "MacOS", ETGFinder.MainName), " [app]");
+                return;
+            }
+
+            if (Directory.Exists(files[0]) ||
                 files[0].ToLower().EndsWith(".zip") ||
-                (files[0].ToLower().EndsWith(".mm.dll"))
-            ) {
+                files[0].ToLower().EndsWith(".mm.dll")) {
                 AddManualPathRow(files[0]);
+                return;
             }
         }
 

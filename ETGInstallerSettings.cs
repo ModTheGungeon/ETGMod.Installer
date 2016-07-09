@@ -16,7 +16,7 @@ namespace ETGModInstaller {
                 if (ETGFinder.Platform.HasFlag(ETGPlatform.Windows)) {
                     return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "etgmodconfig.txt");
                 } else if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
-                    return Path.Combine(Environment.GetEnvironmentVariable("HOME"), ".etgmodconfig.txt");
+                    return Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".etgmodconfig.txt");
                 } else if (ETGFinder.Platform.HasFlag(ETGPlatform.Linux)) {
                     string xdg = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
                     if (string.IsNullOrWhiteSpace(xdg)) {

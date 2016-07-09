@@ -188,7 +188,11 @@ namespace ETGModInstaller {
             });
 
             if (path != null && (ins.MainMod == null || ins.MainMod.In.FullName != path)) {
-                path = Path.Combine(Directory.GetParent(path).FullName, "EtG_Data", "Managed", "Assembly-CSharp.dll");
+                if (!Platform.HasFlag(ETGPlatform.MacOS)) {
+                    path = Path.Combine(Directory.GetParent(path).FullName, "EtG_Data", "Managed", "Assembly-CSharp.dll");
+                } else {
+                    path = Path.Combine(Directory.GetParent(path).Parent.FullName, "Resources", "Data", "Managed", "Assembly-CSharp.dll");
+                }
                 if (!File.Exists(path)) {
                     path = null;
                 }
