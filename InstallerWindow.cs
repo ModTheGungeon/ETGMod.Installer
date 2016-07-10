@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Windows.Forms.VisualStyles;
 
 using ContentAlignment = System.Drawing.ContentAlignment;
+using System.Diagnostics;
 
 namespace ETGModInstaller {
     public class InstallerWindow : Form {
@@ -20,6 +21,8 @@ namespace ETGModInstaller {
         public static Version Version = Assembly.GetEntryAssembly().GetName().Version;
 
         public static InstallerWindow Instance;
+
+        public static Font GlobalFont;
 
         public Thread GUIThread;
         private List<Action> delayed = new List<Action>();
@@ -69,6 +72,17 @@ namespace ETGModInstaller {
                 Console.WriteLine("Font " + i + ": " + pfc.Families[i]);
             }
             GlobalFont = new Font(pfc.Families[0], 8f);*/
+
+            if (GlobalFont == null) {
+                if (ETGFinder.Platform.HasFlag(ETGPlatform.Windows)) {
+                    GlobalFont = new Font("Segoe UI", 8f, FontStyle.Regular);
+                } else if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
+                    GlobalFont = new Font("Lucida Grande", 8f, FontStyle.Regular); // With Helvetica Neue: Erter Tne Girgeor
+                } else {
+                    GlobalFont = new Font("Arial", 8f, FontStyle.Regular);
+                }
+            }
+
             AllowDrop = true;
             DragDrop += onDragDrop;
             DragEnter += delegate(object sender, DragEventArgs e) {
@@ -85,7 +99,7 @@ namespace ETGModInstaller {
             
             Controls.Add(new Label() {
                 Bounds = new Rectangle(448, 338, 308, 16),
-                //Font = GlobalFont,
+                Font = GlobalFont,
                 TextAlign = ContentAlignment.BottomRight,
                 Text = "v" + Version,
                 BackColor = Color.Transparent,
@@ -94,6 +108,7 @@ namespace ETGModInstaller {
             
             Controls.Add(LogBox = new RichTextBox() {
                 Bounds = new Rectangle(0, 0, 448, 358),
+                Font = GlobalFont,
                 ReadOnly = true,
                 Multiline = true,
                 //ScrollBars = System.Windows.Forms.ScrollBars.Vertical,
@@ -109,12 +124,12 @@ namespace ETGModInstaller {
 
             Controls.Add(Progress = new CustomProgress() {
                 Bounds = new Rectangle(448, 313, 312, 24),
-                //Font = GlobalFont,
+                Font = GlobalFont,
                 Text = "Idle."
             });
 
             Add(new Label() {
-                //Font = GlobalFont,
+                Font = GlobalFont,
                 TextAlign = ContentAlignment.MiddleCenter,
                 Text = !ETGFinder.Platform.HasFlag(ETGPlatform.MacOS) ? ("Step 1: Select " + ETGFinder.MainName) : ("Step 1: Drag-n-drop EtG_OSX.app here"),
                 BackColor = Color.Transparent,
@@ -122,11 +137,13 @@ namespace ETGModInstaller {
             });
             
             Add(ExePathBox = new TextBox() {
+                Font = GlobalFont,
                 ReadOnly = true
             });
             ExePathBox.Width -= 32;
             Controls.Add(ExePathButton = new Button() {
                 Bounds = new Rectangle(ExePathBox.Bounds.X + ExePathBox.Bounds.Width, ExePathBox.Bounds.Y, 32, ExePathBox.Bounds.Height),
+                Font = GlobalFont,
                 Image = LoadAsset<Image>("icons.open"),
                 ImageAlign = ContentAlignment.MiddleCenter
             });
@@ -152,7 +169,7 @@ namespace ETGModInstaller {
             AddOffset += 2;
             
             Add(ExeStatusLabel = new Label() {
-                //Font = GlobalFont,
+                Font = GlobalFont,
                 TextAlign = ContentAlignment.MiddleCenter,
                 Text = "No " + ETGFinder.MainName + " selected",
                 BackColor = Color.FromArgb(127, 255, 63, 63),
@@ -162,7 +179,7 @@ namespace ETGModInstaller {
             AddOffset += 2;
             
             Add(new Label() {
-                //Font = GlobalFont,
+                Font = GlobalFont,
                 TextAlign = ContentAlignment.MiddleCenter,
                 Text = "Step 2: Choose your API mods",
                 BackColor = Color.Transparent,
@@ -171,7 +188,7 @@ namespace ETGModInstaller {
             
             Controls.Add(InstallButton = new Button() {
                 Bounds = new Rectangle(448, 313 - 1 - ExePathButton.Size.Height, 312 - 32, ExePathButton.Size.Height),
-                //Font = GlobalFont,
+                Font = GlobalFont,
                 TextAlign = ContentAlignment.MiddleCenter,
                 Text = "Step 3: Install ETGMod",
                 Enabled = false
@@ -179,6 +196,7 @@ namespace ETGModInstaller {
             InstallButton.Click += (object senderClick, EventArgs eClick) => Task.Run((Action) this.Install);
             Controls.Add(UninstallButton = new Button() {
                 Bounds = new Rectangle(InstallButton.Bounds.X + InstallButton.Bounds.Width, InstallButton.Bounds.Y, 32, InstallButton.Bounds.Height),
+                Font = GlobalFont,
                 Image = LoadAsset<Image>("icons.uninstall"),
                 ImageAlign = ContentAlignment.MiddleCenter
             });
@@ -191,11 +209,28 @@ namespace ETGModInstaller {
             
             Controls.Add(VersionTabs = new TabControl() {
                 Bounds = new Rectangle(448, 4 + 26 * AddIndex + AddOffset, 312, InstallButton.Location.Y - (4 + 26 * AddIndex + AddOffset)),
+                Font = GlobalFont,
                 BackColor = Color.Transparent
             });
+
+            if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
+                VersionTabs.BackColor = Color.White;
+                // Mono's WinForms implementation on macOS just sucks.
+                VersionTabs.SelectedIndexChanged += delegate(object sender, EventArgs e) {
+                    for (int i = 0; i < VersionTabs.TabPages.Count; i++) {
+                        if (i == VersionTabs.SelectedIndex) {
+                            VersionTabs.TabPages[i].ShowDeep();
+                            continue;
+                        }
+                        VersionTabs.TabPages[i].HideDeep();
+                    }
+                    RefreshManualPanel();
+                };
+            }
             
             VersionTabs.TabPages.Add(new TabPage("API Mods"));
             VersionTabs.TabPages[0].Controls.Add(APIModsList = new ListBox() {
+                Font = GlobalFont,
                 Dock = DockStyle.Fill,
                 MultiColumn = true,
                 SelectionMode = SelectionMode.MultiExtended
@@ -203,24 +238,31 @@ namespace ETGModInstaller {
             
             VersionTabs.TabPages.Add(new TabPage("Advanced"));
             VersionTabs.TabPages[1].Controls.Add(AdvancedPanel = new Panel() {
+                Font = GlobalFont,
                 Dock = DockStyle.Fill
             });
             AdvancedPanel.Controls.Add(AdvancedAddButton = new Button() {
+                Font = GlobalFont,
                 Image = LoadAsset<Image>("icons.open"),
                 ImageAlign = ContentAlignment.MiddleCenter
             });
             AdvancedPanel.Controls.Add(AdvancedLabel = new Label() {
+                Font = GlobalFont,
                 Text = "or drag-and-drop a folder / .zip here",
                 TextAlign = ContentAlignment.MiddleCenter
             });
             AdvancedPanel.Controls.Add(AdvancedAutoRunCheckbox = new CheckBox() {
-                Text = "FORCE-EXIT " + ETGFinder.MainName + " and run when ETGMod installed",
+                Font = GlobalFont,
+                Text = "FORCE-EXIT " + ETGFinder.MainName + " and run when mod installed",
                 TextAlign = ContentAlignment.MiddleCenter
             });
+            if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
+                AdvancedAutoRunCheckbox.Text = "FORCE-EXIT Gungeon and run when mod installed";
+            }
             AdvancedAddButton.Click += delegate(object senderClick, EventArgs eClick) {
                 if (OpenModDialog == null) {
                     OpenModDialog = new OpenFileDialog() {
-                        Title = "Select ETGMod ZIP",
+                        Title = "Select ETGMod Backend",
                         AutoUpgradeEnabled = true,
                         CheckFileExists = true,
                         CheckPathExists = true,
@@ -248,6 +290,7 @@ namespace ETGModInstaller {
         public void AddManualPathRow(string path) {
             TextBox pathBox;
             AdvancedPanel.Controls.Add(pathBox = new TextBox() {
+                Font = GlobalFont,
                 ReadOnly = true,
                 Text = path
             });
@@ -255,6 +298,7 @@ namespace ETGModInstaller {
             Button removeButton;
             AdvancedPanel.Controls.Add(removeButton = new Button() {
                 Bounds = new Rectangle(),
+                Font = GlobalFont,
                 Image = LoadAsset<Image>("icons.uninstall"),
                 ImageAlign = ContentAlignment.MiddleCenter
             });
@@ -278,6 +322,14 @@ namespace ETGModInstaller {
                 pathBox.Bounds = new Rectangle(0, y, VersionTabs.Width - 32 - 8, 24);
                 removeButton.Bounds = new Rectangle(pathBox.Bounds.X + pathBox.Bounds.Width, pathBox.Bounds.Y, 32, pathBox.Bounds.Height);
                 y += pathBox.Bounds.Height;
+            }
+
+            if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
+                if (VersionTabs.SelectedIndex != 1) {
+                    AdvancedPanel.HideDeep();
+                } else {
+                    AdvancedPanel.ShowDeep();
+                }
             }
 
             AdvancedAddButton.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
@@ -450,7 +502,7 @@ namespace ETGModInstaller {
 
             if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS) &&
                 Directory.Exists(files[0]) &&
-                files[0].ToLower().EndsWith("EtG_OSX.app")) {
+                files[0].ToLower().EndsWith(".app/")) { // Is that trailing slash existing on every platform?
                 this.ExeSelected(Path.Combine(files[0], "Contents", "MacOS", ETGFinder.MainName), " [app]");
                 return;
             }

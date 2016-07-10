@@ -57,4 +57,21 @@ namespace ETGModInstaller {
         }
     }
     
+    public static class WinFormsExt {
+
+        public static void ShowDeep(this Control p) {
+            p.Show();
+            foreach (Control c in p.Controls) {
+                c.ShowDeep();
+            }
+        }
+
+        public static void HideDeep(this Control p) {
+            p.Hide();
+            foreach (Control c in p.Controls) {
+                c.HideDeep();
+            }
+        }
+
+    }
 }

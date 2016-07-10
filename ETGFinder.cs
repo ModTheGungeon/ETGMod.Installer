@@ -40,7 +40,6 @@ namespace ETGModInstaller {
                     return "EtG";
 
                 } else if (Platform.HasFlag(ETGPlatform.MacOS)) {
-                    // TODO
                     return "EtG_OSX";
 
                 } else if (Platform.HasFlag(ETGPlatform.Linux)) {
@@ -54,31 +53,35 @@ namespace ETGModInstaller {
 
         public static string SteamPath {
             get {
-                Process[] processes = Process.GetProcesses(".");
                 string path = null;
-            
-                for (int i = 0; i < processes.Length; i++) {
-                    Process p = processes[i];
-                
-                    try {
-                        if (!p.ProcessName.Contains("steam") || path != null) {
+
+                if (!Platform.HasFlag(ETGPlatform.MacOS)) {
+                    // On macOS, Steam is installed separately to the games library...
+                    Process[] processes = Process.GetProcesses(".");
+
+                    for (int i = 0; i < processes.Length; i++) {
+                        Process p = processes[i];
+
+                        try {
+                            if (!p.ProcessName.Contains("steam") || path != null) {
+                                p.Dispose();
+                                continue;
+                            }
+
+                            if (p.MainModule.ModuleName.ToLower().Contains("steam")) {
+                                path = p.MainModule.FileName;
+                                Console.WriteLine("Steam found at " + path);
+                                p.Dispose();
+                            }
+                        } catch (Exception) {
+                            //probably the service acting up, a process quitting or bitness mismatch
                             p.Dispose();
-                            continue;
                         }
-                    
-                        if (p.MainModule.ModuleName.ToLower().Contains("steam")) {
-                            path = p.MainModule.FileName;
-                            Console.WriteLine("Steam found at " + path);
-                            p.Dispose();
-                        }
-                    } catch (Exception) {
-                        //probably the service acting up or a process quitting
-                        p.Dispose();
                     }
                 }
             
-                if (path == null || Platform.HasFlag(ETGPlatform.MacOS)) { // TODO handle steam process path
-                    Console.WriteLine("Found no Steam executable");
+                if (path == null) {
+                    Console.WriteLine("Found no Steam executable.");
                 
                     if (Platform.HasFlag(ETGPlatform.Linux)) {
                         path = Path.Combine(Environment.GetEnvironmentVariable("HOME"), ".local/share/Steam");
@@ -90,13 +93,12 @@ namespace ETGModInstaller {
                         }
 
                     } else if (Platform.HasFlag(ETGPlatform.MacOS)) {
-                        //Users/$USER/Library/Application Support/Steam/SteamApps/common/Enter the Gungeon/EtG_OSX.app/
-                        path = Path.Combine("Users", Environment.GetEnvironmentVariable("USER"), "Library/Application Support/Steam");
+                        //$HOME/Library/Application Support/Steam/SteamApps/common/Enter the Gungeon/EtG_OSX.app/
+                        path = Path.Combine(Environment.GetEnvironmentVariable("HOME"), "Library/Application Support/Steam");
                         if (!Directory.Exists(path)) {
                             return null;
                         } else {
-                            Console.WriteLine("At least Steam seems to be installed somewhere reasonable...");
-                            //path = Path.Combine(path, "bin/steam"); //?
+                            Console.WriteLine("At least the Steam games library is somewhere reasonable...");
                         }
                     } else {
                         return null;
@@ -110,7 +112,7 @@ namespace ETGModInstaller {
                     Console.WriteLine("Windows Steam main dir " + path);
                 
                 } else if (Platform.HasFlag(ETGPlatform.MacOS)) {
-                    //Guyse, we need a test case here!
+                    //macOS is so weird...
                     Console.WriteLine("MacOS Steam main dir " + path);
                     if (!Directory.Exists(path)) {
                         return null;
@@ -134,6 +136,9 @@ namespace ETGModInstaller {
                 path = Path.Combine(path, "common"); //SA/common
             
                 path = Path.Combine(path, "Enter the Gungeon");
+                if (Platform.HasFlag(ETGPlatform.MacOS)) {
+                    path = Path.Combine(path, "EtG_OSX.app", "Contents", "MacOS");
+                }
                 path = Path.Combine(path, ETGFinder.MainName);
             
                 if (!File.Exists(path)) {
