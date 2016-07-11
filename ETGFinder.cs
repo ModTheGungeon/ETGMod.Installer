@@ -15,39 +15,45 @@ using Mono.Cecil.Cil;
 namespace ETGModInstaller {
     public static class ETGFinder {
 
+        public static bool IsBinaryWrapped = false;
         public static string MainName {
             get {
+                if (IsBinaryWrapped) {
+                    return "EtG.bin";
+                }
+
                 if (Platform.HasFlag(ETGPlatform.Windows)) {
                     return "EtG.exe";
-
-                } else if (Platform.HasFlag(ETGPlatform.MacOS)) {
+                }
+                if (Platform.HasFlag(ETGPlatform.MacOS)) {
                     // MacOS is weird.
                     // /Users/$USER/Library/Application Support/Steam/SteamApps/common/Enter the Gungeon/EtG_OSX.app/Contents/MacOS/EtG_OSX
                     return "EtG_OSX";
-
-                } else if (Platform.HasFlag(ETGPlatform.Linux)) {
-                    return IntPtr.Size == 4 ? "EtG.x86" : "EtG.x86_64";
-
-                } else {
-                    return null;
                 }
+                if (Platform.HasFlag(ETGPlatform.Linux)) {
+                    return IntPtr.Size == 4 ? "EtG.x86" : "EtG.x86_64";
+                }
+
+                return null;
             }
         }
-
         public static string ProcessName {
             get {
                 if (Platform.HasFlag(ETGPlatform.Windows)) {
                     return "EtG";
-
-                } else if (Platform.HasFlag(ETGPlatform.MacOS)) {
-                    return "EtG_OSX";
-
-                } else if (Platform.HasFlag(ETGPlatform.Linux)) {
-                    return IntPtr.Size == 4 ? "EtG.x86" : "EtG.x86_64";
-
-                } else {
-                    return null;
                 }
+                if (IsBinaryWrapped) {
+                    return "EtG.bin";
+                }
+
+                if (Platform.HasFlag(ETGPlatform.MacOS)) {
+                    return "EtG_OSX";
+                }
+                if (Platform.HasFlag(ETGPlatform.Linux)) {
+                    return IntPtr.Size == 4 ? "EtG.x86" : "EtG.x86_64";
+                }
+
+                return null;
             }
         }
 

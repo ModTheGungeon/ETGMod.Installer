@@ -43,6 +43,7 @@ namespace ETGModInstaller {
         public Button AdvancedAddButton;
         public Label AdvancedLabel;
         public CheckBox AdvancedAutoRunCheckbox;
+        public CheckBox AdvancedBinaryWrappedCheckbox;
         public Button InstallButton;
         public Button UninstallButton;
         public CustomProgress Progress;
@@ -59,8 +60,38 @@ namespace ETGModInstaller {
             Instance = this;
             HandleCreated += onHandleCreated;
 
+            OpenExeDialog = new OpenFileDialog() {
+                Title = "Select " + ETGFinder.MainName,
+                AutoUpgradeEnabled = true,
+                CheckFileExists = true,
+                CheckPathExists = true,
+                ValidateNames = true,
+                Multiselect = false,
+                ShowReadOnly = false,
+                Filter = ETGFinder.MainName + "|" + ETGFinder.MainName,
+                FilterIndex = 0
+            };
+            OpenExeDialog.FileOk += (object senderFileOk, CancelEventArgs eFileOk) => Task.Run(() => this.ExeSelected(OpenExeDialog.FileNames[0]));
+
+            OpenModDialog = new OpenFileDialog() {
+                Title = "Select ETGMod Backend",
+                AutoUpgradeEnabled = true,
+                CheckFileExists = true,
+                CheckPathExists = true,
+                ValidateNames = true,
+                Multiselect = true,
+                ShowReadOnly = false,
+                Filter = "ETGMod DLL|*.mm.dll|ETGMod ZIP|*.zip|All files|*.*",
+                FilterIndex = 0
+            };
+            OpenModDialog.FileOk += (object senderFileOk, CancelEventArgs eFileOk) => AddManualPathRows(OpenModDialog.FileNames);
+
             Text = "Mod the Gungeon Installer";
-            FormBorderStyle = FormBorderStyle.FixedDialog;
+            if (ETGFinder.Platform.HasFlag(ETGPlatform.Unix)) {
+                FormBorderStyle = FormBorderStyle.Sizable;
+            } else {
+                FormBorderStyle = FormBorderStyle.FixedDialog;
+            }
             ResizeRedraw = false;
             MaximizeBox = false;
             MinimizeBox = true;
@@ -79,7 +110,7 @@ namespace ETGModInstaller {
                 } else if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
                     GlobalFont = new Font("Lucida Grande", 8f, FontStyle.Regular); // With Helvetica Neue: Erter Tne Girgeor
                 } else {
-                    GlobalFont = new Font("Arial", 8f, FontStyle.Regular);
+                    GlobalFont = new Font("DejaVu Sans", 8f, FontStyle.Regular);
                 }
             }
 
@@ -95,8 +126,9 @@ namespace ETGModInstaller {
             BackgroundImageLayout = ImageLayout.Center;
             Icon = LoadAsset<Icon>("icons.main");
 
-            MinimumSize = Size = MaximumSize = BackgroundImage.Size + (Environment.OSVersion.Platform.ToString().ToLower().Contains("win") ? new Size(8, 8) : new Size());
-            
+            ResetSize();
+            SizeChanged += ResetSize;
+
             Controls.Add(new Label() {
                 Bounds = new Rectangle(448, 338, 308, 16),
                 Font = GlobalFont,
@@ -147,25 +179,7 @@ namespace ETGModInstaller {
                 Image = LoadAsset<Image>("icons.open"),
                 ImageAlign = ContentAlignment.MiddleCenter
             });
-            ExePathButton.Click += delegate(object senderClick, EventArgs eClick) {
-                if (OpenExeDialog == null) {
-                    OpenExeDialog = new OpenFileDialog() {
-                        Title = "Select " + ETGFinder.MainName,
-                        AutoUpgradeEnabled = true,
-                        CheckFileExists = true,
-                        CheckPathExists = true,
-                        ValidateNames = true,
-                        Multiselect = false,
-                        ShowReadOnly = false,
-                        Filter = ETGFinder.MainName + "|" + ETGFinder.MainName,
-                        FilterIndex = 0
-                    };
-                    OpenExeDialog.FileOk +=
-                        (object senderFileOk, CancelEventArgs eFileOk) => Task.Run(() => this.ExeSelected(OpenExeDialog.FileNames[0]));
-                }
-
-                OpenExeDialog.ShowDialog(this);
-            };
+            ExePathButton.Click += (object senderClick, EventArgs eClick) => OpenExeDialog.ShowDialog(this);
             AddOffset += 2;
             
             Add(ExeStatusLabel = new Label() {
@@ -246,6 +260,7 @@ namespace ETGModInstaller {
                 Image = LoadAsset<Image>("icons.open"),
                 ImageAlign = ContentAlignment.MiddleCenter
             });
+            AdvancedAddButton.Click += (object senderClick, EventArgs eClick) => OpenModDialog.ShowDialog(this);
             AdvancedPanel.Controls.Add(AdvancedLabel = new Label() {
                 Font = GlobalFont,
                 Text = "or drag-and-drop a folder / .zip here",
@@ -253,32 +268,30 @@ namespace ETGModInstaller {
             });
             AdvancedPanel.Controls.Add(AdvancedAutoRunCheckbox = new CheckBox() {
                 Font = GlobalFont,
-                Text = "FORCE-EXIT " + ETGFinder.MainName + " and run when mod installed",
+                Text = "CLOSE " + ETGFinder.MainName + " && run when mod installed",
                 TextAlign = ContentAlignment.MiddleCenter
             });
             if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
-                AdvancedAutoRunCheckbox.Text = "FORCE-EXIT Gungeon and run when mod installed";
+                AdvancedAutoRunCheckbox.Text = "CLOSE Gungeon && run when mod installed";
             }
-            AdvancedAddButton.Click += delegate(object senderClick, EventArgs eClick) {
-                if (OpenModDialog == null) {
-                    OpenModDialog = new OpenFileDialog() {
-                        Title = "Select ETGMod Backend",
-                        AutoUpgradeEnabled = true,
-                        CheckFileExists = true,
-                        CheckPathExists = true,
-                        ValidateNames = true,
-                        Multiselect = true,
-                        ShowReadOnly = false,
-                        Filter = "ETGMod DLL|*.mm.dll|ETGMod ZIP|*.zip|All files|*.*",
-                        FilterIndex = 0
-                    };
-                    OpenModDialog.FileOk +=
-                        (object senderFileOk, CancelEventArgs eFileOk) => AddManualPathRows(OpenModDialog.FileNames);
-                }
-
-                OpenModDialog.ShowDialog(this);
+            AdvancedPanel.Controls.Add(AdvancedBinaryWrappedCheckbox = new CheckBox() {
+                Font = GlobalFont,
+                Text = ETGFinder.MainName + " is a wrapper, use EtG.bin",
+                TextAlign = ContentAlignment.MiddleCenter
+            });
+            AdvancedBinaryWrappedCheckbox.CheckedChanged += delegate (object senderCheck, EventArgs eCheck) {
+                ETGFinder.IsBinaryWrapped = AdvancedBinaryWrappedCheckbox.Checked;
             };
+            
             RefreshManualPanel();
+        }
+
+        private void ResetSize(object sender = null, EventArgs e = null) {
+            SizeChanged -= ResetSize;
+
+            MinimumSize = Size = MaximumSize = BackgroundImage.Size + (ETGFinder.Platform.HasFlag(ETGPlatform.Windows) ? new Size(8, 8) : new Size());
+
+            SizeChanged += ResetSize;
         }
 
         public void AddManualPathRows(string[] paths) {
@@ -335,6 +348,7 @@ namespace ETGModInstaller {
             AdvancedAddButton.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
             AdvancedLabel.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
             AdvancedAutoRunCheckbox.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
+            AdvancedBinaryWrappedCheckbox.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
         }
         public InstallerWindow SetMainEnabled(bool enabled) {
             return Invoke(delegate() {

@@ -43,6 +43,10 @@ namespace ETGModInstaller {
                 .Invoke(ETGInstallerSettings.Save)
                 .SetMainEnabled(false)
                 .Wait();
+
+            if (ETGFinder.IsBinaryWrapped) {
+                ExePath = Path.Combine(Directory.GetParent(ExePath).FullName, ETGFinder.MainName);
+            }
             
             Directory.SetCurrentDirectory(ins.MainMod.Dir.FullName);
 
@@ -173,7 +177,7 @@ namespace ETGModInstaller {
             ins.LogLine("It may seem like the Installer may be stuck sometimes. Go make");
             ins.LogLine("yourself a coffee in the meantime - it doesn't get stuck.");
             ins.LogLine("It may *crash*, though - and in this case, debug stuff appears");
-            ins.LogLine("here. Please put that debug stuff onto http://hastebin.com/ and");
+            ins.LogLine("here. Please put that debug stuff onto http://pastebin.com/ and");
             ins.LogLine("send it to @0x0ade on Twitter or the #modding channel in Discord.");
             ins.LogLine();
 
@@ -249,6 +253,9 @@ namespace ETGModInstaller {
 
             // Uninstall can be invoked without the installer running
             ins.Invoke(() => ExePath = ins.ExePathBox.Text).Wait();
+            if (ETGFinder.IsBinaryWrapped) {
+                ExePath = Path.Combine(Directory.GetParent(ExePath).FullName, ETGFinder.MainName);
+            }
 
             string pathGame = ins.MainMod.Dir.FullName;
             string pathBackup = Path.Combine(pathGame, "ModBackup");

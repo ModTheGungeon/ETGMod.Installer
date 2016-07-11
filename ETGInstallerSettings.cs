@@ -40,6 +40,9 @@ namespace ETGModInstaller {
 
             OnLoad["advanced"] = (s) => InstallerWindow.Instance.SetAdvanced(s.Split(';'));
             OnSave["advanced"] = () => InstallerWindow.Instance.GetAdvanced(';');
+
+            OnLoad["binarywrapped"] = (s) => InstallerWindow.Instance.AdvancedBinaryWrappedCheckbox.Checked = bool.Parse(s);
+            OnSave["binarywrapped"] = () => InstallerWindow.Instance.AdvancedBinaryWrappedCheckbox.Checked.ToString();
         }
 
         public static void SetAdvanced(this InstallerWindow ins, string[] paths) {
