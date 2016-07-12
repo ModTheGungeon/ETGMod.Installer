@@ -11,6 +11,8 @@ using System.Threading;
 namespace ETGModInstaller {
     public static class ETGModder {
 
+        public static bool IsOffline = false;
+
         public static string LogPath;
         public static string ExePath;
         public static string ExeBackupPath;
@@ -76,6 +78,7 @@ namespace ETGModInstaller {
             ins.Uninstall();
 
             ins.Backup("UnityEngine.dll");
+            ins.Backup("UnityEngine.dll.mdb");
             ins.Backup("Assembly-CSharp.dll");
             ins.BackupETG();
 
@@ -83,21 +86,25 @@ namespace ETGModInstaller {
             ins.Deobfuscate("Assembly-CSharp.dll");
 
             //Setup the files and MonoMod instances
-            ins.LogLine("Mod #0: API MOD (ETGMod)");
-            //Check if the revision online is newer
-            RepoHelper.RevisionFile = Path.Combine(ins.MainMod.Dir.FullName, "ModCache", "ETGMOD_REVISION.txt");
-            int revisionOnline = RepoHelper.RevisionOnline;
-            if (RepoHelper.Revision < revisionOnline) {
-                string cachedPath = Path.Combine(ins.MainMod.Dir.FullName, "ModCache", "ETGMOD.zip");
-                if (File.Exists(cachedPath)) {
-                    File.Delete(cachedPath);
+            int mi = -1;
+            if (!IsOffline) {
+                mi = 0;
+                ins.LogLine("Mod #0: Base");
+                //Check if the revision online is newer
+                RepoHelper.RevisionFile = Path.Combine(ins.MainMod.Dir.FullName, "ModCache", "ETGMOD_REVISION.txt");
+                int revisionOnline = RepoHelper.RevisionOnline;
+                if (RepoHelper.Revision < revisionOnline) {
+                    string cachedPath = Path.Combine(ins.MainMod.Dir.FullName, "ModCache", "ETGMOD.zip");
+                    if (File.Exists(cachedPath)) {
+                        File.Delete(cachedPath);
+                    }
                 }
+                if (!IsOffline && !ins.UnzipMod(ins.DownloadCached(RepoHelper.ETGModURL, "ETGMOD.zip"))) {
+                    return;
+                }
+                RepoHelper.Revision = revisionOnline;
             }
-            if (!ins.UnzipMod(ins.DownloadCached(RepoHelper.ETGModURL, "ETGMOD.zip"))) {
-                return;
-            }
-            RepoHelper.Revision = revisionOnline;
-            int mi = 0;
+            
 
             int[] selectedIndices = null;
             ins.Invoke(delegate() {
@@ -106,11 +113,14 @@ namespace ETGModInstaller {
                 selectedIndices = _selectedIndices;
             });
             while (selectedIndices == null) {
-                System.Threading.Thread.Sleep(100);
+                Thread.Sleep(100);
             }
 
             for (int i = 0; i < selectedIndices.Length; i++) {
                 Tuple<string, string> t = ins.APIMods[selectedIndices[i]];
+                if (string.IsNullOrEmpty(t.Item2)) {
+                    continue;
+                }
                 ins.Log("Mod #").Log((++mi).ToString()).Log(": ").LogLine(t.Item1);
                 if (!ins.UnzipMod(ins.DownloadCached(t.Item2, t.Item1 + ".zip"))) {
                     return;
@@ -311,8 +321,12 @@ namespace ETGModInstaller {
         }
         
         public static byte[] Download(this InstallerWindow ins, string url) {
+            if (IsOffline) {
+                return null;
+            }
+
             byte[] data = null;
-            
+
             ins.Log("Downloading ").Log(url).LogLine("...");
             ins.InitProgress("Starting download", 1);
             
@@ -388,6 +402,9 @@ namespace ETGModInstaller {
             }
             
             data = ins.Download(url);
+            if (data == null) {
+                return null;
+            }
             
             ins.WriteDataToCache(cached, data);
             return data;
@@ -461,6 +478,9 @@ namespace ETGModInstaller {
 		}
         
         public static bool UnzipMod(this InstallerWindow ins, byte[] data) {
+            if (data == null) {
+                return false;
+            }
             using (MemoryStream ms = new MemoryStream(data, 0, data.Length, false, true)) {
                 return ins.UnzipMod(ms);
             }
@@ -506,6 +526,10 @@ namespace ETGModInstaller {
                                     ins.LogLine("There's a new ETGMod Installer version!");
                                     ins.LogLine("Visit https://0x0ade.github.io/etgmod/#download to download it.");
                                     ins.Log("(Minimum installer version for this ETGMod version: ").LogLine(minv.ToString()).Log(")");
+                                    ins.Invoke(() => ins.Progress.BrushProgress =
+                                        new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(255, 63, 63, 91))
+                                    );
+                                    ins.InitProgress("Installer update required!", 1).SetProgress(1);
                                     return false;
                                 }
                             }
@@ -601,7 +625,10 @@ namespace ETGModInstaller {
             monomod.Out = monomod.In;
             using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
                 using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
-                    monomod.Logger = (string s) => streamWriter.WriteLine(s);
+                    monomod.Logger = (string s) => ins.OnActivity();
+                    monomod.Logger += (string s) => streamWriter.WriteLine(s);
+                    // Unity wants .mdbs
+                    monomod.WriterParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider();
                     try {
                         monomod.AutoPatch(true, true);
                         return true;
@@ -622,7 +649,10 @@ namespace ETGModInstaller {
 
             using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
                 using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
-                    ins.MainMod.Logger = (string s) => streamWriter.WriteLine(s);
+                    ins.MainMod.Logger = (string s) => ins.OnActivity();
+                    ins.MainMod.Logger += (string s) => streamWriter.WriteLine(s);
+                    // Unity wants .mdbs
+                    ins.MainMod.WriterParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider();
                     try {
                         ins.MainMod.AutoPatch(true, true);
                         return true;

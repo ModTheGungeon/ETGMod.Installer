@@ -14,6 +14,7 @@ using System.Windows.Forms.VisualStyles;
 
 using ContentAlignment = System.Drawing.ContentAlignment;
 using System.Diagnostics;
+using System.Drawing.Imaging;
 
 namespace ETGModInstaller {
     public class InstallerWindow : Form {
@@ -43,6 +44,7 @@ namespace ETGModInstaller {
         public Button AdvancedAddButton;
         public Label AdvancedLabel;
         public CheckBox AdvancedAutoRunCheckbox;
+        public CheckBox AdvancedOfflineCheckbox;
         public CheckBox AdvancedBinaryWrappedCheckbox;
         public Button InstallButton;
         public Button UninstallButton;
@@ -124,6 +126,8 @@ namespace ETGModInstaller {
             };
             BackgroundImage = LoadAsset<Image>("background");
             BackgroundImageLayout = ImageLayout.Center;
+
+            //ShuffleIconColors();
             Icon = LoadAsset<Icon>("icons.main");
 
             ResetSize();
@@ -249,11 +253,17 @@ namespace ETGModInstaller {
                 MultiColumn = true,
                 SelectionMode = SelectionMode.MultiExtended
             });
-            
+            APIModsList.SelectedValueChanged += delegate (object sender, EventArgs e) {
+                if (!RepoHelper.IsOffline && !APIModsList.SelectedIndices.Contains(0)) {
+                    APIModsList.SelectedIndices.Add(0);
+                }
+            };
+
             VersionTabs.TabPages.Add(new TabPage("Advanced"));
             VersionTabs.TabPages[1].Controls.Add(AdvancedPanel = new Panel() {
                 Font = GlobalFont,
-                Dock = DockStyle.Fill
+                Dock = DockStyle.Fill,
+                AutoScroll = true
             });
             AdvancedPanel.Controls.Add(AdvancedAddButton = new Button() {
                 Font = GlobalFont,
@@ -274,6 +284,15 @@ namespace ETGModInstaller {
             if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
                 AdvancedAutoRunCheckbox.Text = "CLOSE Gungeon && run when mod installed";
             }
+            AdvancedPanel.Controls.Add(AdvancedOfflineCheckbox = new CheckBox() {
+                Font = GlobalFont,
+                Text = "Offline mode - only use the APIs here",
+                TextAlign = ContentAlignment.MiddleCenter
+            });
+            AdvancedOfflineCheckbox.CheckedChanged += delegate (object senderCheck, EventArgs eCheck) {
+                ETGModder.IsOffline = RepoHelper.IsOffline = AdvancedOfflineCheckbox.Checked;
+                DownloadModsList();
+            };
             AdvancedPanel.Controls.Add(AdvancedBinaryWrappedCheckbox = new CheckBox() {
                 Font = GlobalFont,
                 Text = ETGFinder.MainName + " is a wrapper, use EtG.bin",
@@ -328,11 +347,13 @@ namespace ETGModInstaller {
         }
 
         public void RefreshManualPanel() {
+            int width = VersionTabs.Width - SystemInformation.VerticalScrollBarWidth;
+
             int y = 0;
             for (int i = 0; i < AdvancedPathBoxes.Count; i++) {
                 TextBox pathBox = AdvancedPathBoxes[i];
                 Button removeButton = AdvancedRemoveButtons[i];
-                pathBox.Bounds = new Rectangle(0, y, VersionTabs.Width - 32 - 8, 24);
+                pathBox.Bounds = new Rectangle(0, y, width - 32 - 8, 24);
                 removeButton.Bounds = new Rectangle(pathBox.Bounds.X + pathBox.Bounds.Width, pathBox.Bounds.Y, 32, pathBox.Bounds.Height);
                 y += pathBox.Bounds.Height;
             }
@@ -345,10 +366,11 @@ namespace ETGModInstaller {
                 }
             }
 
-            AdvancedAddButton.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
-            AdvancedLabel.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
-            AdvancedAutoRunCheckbox.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
-            AdvancedBinaryWrappedCheckbox.Bounds = new Rectangle(0, y, VersionTabs.Width - 8, 24); y += 24;
+            AdvancedAddButton.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
+            AdvancedLabel.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
+            AdvancedAutoRunCheckbox.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
+            AdvancedOfflineCheckbox.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
+            AdvancedBinaryWrappedCheckbox.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
         }
         public InstallerWindow SetMainEnabled(bool enabled) {
             return Invoke(delegate() {
@@ -360,8 +382,14 @@ namespace ETGModInstaller {
                 UninstallButton.Enabled = enabled;
             });
         }
-        
+
+        private bool downloadingModsList = false;
         public void DownloadModsList() {
+            if (downloadingModsList) {
+                return;
+            }
+            downloadingModsList = true;
+
             Invoke(delegate() {
                 APIModsList.BeginUpdate();
                 APIModsList.Items.Add("Downloading list...");
@@ -390,9 +418,18 @@ namespace ETGModInstaller {
                     APIModsList.Items.Add(APIMods[i].Item1);
                 }
                 APIModsList.SelectedIndices.Clear();
-                // APIModsList.SelectedIndices.Add(0);
+
+                if (RepoHelper.IsOffline) {
+                    APIModsList.SelectionMode = SelectionMode.None;
+                } else {
+                    APIModsList.SelectionMode = SelectionMode.MultiExtended;
+                    APIModsList.SelectedIndices.Add(0);
+                }
+ 
                 APIModsList.EndUpdate();
             });
+
+            downloadingModsList = false;
         }
         
         public void Add(Control c) {
@@ -409,6 +446,10 @@ namespace ETGModInstaller {
 
             if (GUIThread == Thread.CurrentThread) {
                 d();
+                return this;
+            }
+
+            if (IsDisposed) {
                 return this;
             }
 
@@ -431,12 +472,14 @@ namespace ETGModInstaller {
                 Progress.Maximum = max;
                 Progress.Text = str;
                 Progress.Invalidate();
+                OnActivity(ActivityOnProgress);
             });
         }
         public InstallerWindow SetProgress(int val) {
             return Invoke(delegate() {
                 Progress.Value = val;
                 Progress.Invalidate();
+                OnActivity(ActivityOnProgress);
             });
         }
         public InstallerWindow SetProgress(string str, int val) {
@@ -444,12 +487,14 @@ namespace ETGModInstaller {
                 Progress.Value = val;
                 Progress.Text = str;
                 Progress.Invalidate();
+                OnActivity(ActivityOnProgress);
             });
         }
         public InstallerWindow EndProgress() {
             return Invoke(delegate() {
                 Progress.Value = Progress.Maximum;
                 Progress.Invalidate();
+                OnActivity(ActivityOnProgress);
             });
         }
         public InstallerWindow EndProgress(string str) {
@@ -457,6 +502,7 @@ namespace ETGModInstaller {
                 Progress.Value = Progress.Maximum;
                 Progress.Text = str;
                 Progress.Invalidate();
+                OnActivity(ActivityOnProgress);
             });
         }
         
@@ -491,6 +537,7 @@ namespace ETGModInstaller {
                 LogBox.SelectionStart = LogBox.Text.Length;
                 LogBox.SelectionLength = 0;
                 LogBox.ScrollToCaret();
+                OnActivity(ActivityOnLog);
             });
             logUpdateTask = null;
         }
@@ -542,7 +589,10 @@ namespace ETGModInstaller {
 
             Application.VisualStyleState = VisualStyleState.ClientAndNonClientAreasEnabled;
             new InstallerWindow();
-            
+
+#if DEBUG
+            Instance.ShowDialog();
+#else
             ShowDialog:
             try {
                 Instance.ShowDialog();
@@ -551,6 +601,47 @@ namespace ETGModInstaller {
                 Console.WriteLine(e.ToString());
                 MessageBox.Show("Your window manager has left the building!\nThis simply means the installer crashed,\nbut your window manager caused it.", "ETGMod Installer");
                 goto ShowDialog;
+            }
+#endif
+        }
+
+        public void ShuffleIconColors() {
+            Icon origIcon = LoadAsset<Icon>("icons.main");
+            Bitmap bitmap = origIcon.ToBitmap();
+
+            Dictionary<int, Color> map = new Dictionary<int, Color>();
+            Random rand = new Random();
+            for (int y = 0; y < bitmap.Height; y++) {
+                for (int x = 0; x < bitmap.Width; x++) {
+                    Color co = bitmap.GetPixel(x, y);
+                    Color cn;
+                    if (!map.TryGetValue(co.ToArgb(), out cn)) {
+                        cn = Color.FromArgb(co.A, rand.Next(255), rand.Next(255), rand.Next(255));
+                        map[co.ToArgb()] = cn;
+                    }
+                    bitmap.SetPixel(x, y, cn);
+                }
+            }
+
+            Icon newIcon = Icon.FromHandle(bitmap.GetHicon());
+            Icon = newIcon;
+            bitmap.Dispose();
+            origIcon.Dispose();
+            newIcon.Dispose();
+        }
+
+        private int activity = 0;
+
+        public int ActivityOnProgress = 64;
+        public int ActivityOnLog = 24;
+
+        public int ActivityForIconSwap = 128;
+
+        public void OnActivity(int add = 1) {
+            activity += add;
+
+            if (activity % ActivityForIconSwap == 0) {
+                Invoke(ShuffleIconColors);
             }
         }
 

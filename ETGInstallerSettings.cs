@@ -41,6 +41,9 @@ namespace ETGModInstaller {
             OnLoad["advanced"] = (s) => InstallerWindow.Instance.SetAdvanced(s.Split(';'));
             OnSave["advanced"] = () => InstallerWindow.Instance.GetAdvanced(';');
 
+            OnLoad["offline"] = (s) => InstallerWindow.Instance.AdvancedOfflineCheckbox.Checked = bool.Parse(s);
+            OnSave["offline"] = () => InstallerWindow.Instance.AdvancedOfflineCheckbox.Checked.ToString();
+
             OnLoad["binarywrapped"] = (s) => InstallerWindow.Instance.AdvancedBinaryWrappedCheckbox.Checked = bool.Parse(s);
             OnSave["binarywrapped"] = () => InstallerWindow.Instance.AdvancedBinaryWrappedCheckbox.Checked.ToString();
         }

@@ -6,6 +6,8 @@ using System.Net;
 namespace ETGModInstaller {
     public static class RepoHelper {
 
+        public static bool IsOffline = false;
+
         public static string ETGModURL = "http://modthegungeon.github.io/ETGMOD.zip";
         public static string ETGModRevisionURL = "http://modthegungeon.github.io/ETGMOD_REVISION.txt";
         public static string RevisionFile;
@@ -36,6 +38,9 @@ namespace ETGModInstaller {
 
         public static int RevisionOnline {
             get {
+                if (IsOffline) {
+                    return int.MaxValue;
+                }
                 try {
                     string data = null;
                     using (WebClient wc = new WebClient()) {
@@ -50,6 +55,13 @@ namespace ETGModInstaller {
 
         public static Action GetAPIModsCallback;
         public static List<Tuple<string, string>> GetAPIMods() {
+            if (IsOffline) {
+                return new List<Tuple<string, string>>() {
+                    Tuple.Create("OFFLINE MODE.", ""),
+                    Tuple.Create("Deactivate in \"Advanced\" tab.", "")
+                };
+            }
+
             string data = null;
             using (WebClient wc = new WebClient()) {
                 data = wc.DownloadString("http://modthegungeon.github.io/modlist.txt");
@@ -58,6 +70,7 @@ namespace ETGModInstaller {
             string[] lines = data.Split('\n');
             
             List<Tuple<string, string>> versions = new List<Tuple<string, string>>();
+            versions.Add(Tuple.Create("Base", ""));
             for (int i = 0; i < lines.Length; i++) {
                 if (string.IsNullOrEmpty(lines[i])) {
                     continue;
