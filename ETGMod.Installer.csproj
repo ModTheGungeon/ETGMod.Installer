@@ -30,7 +30,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;MONOMOD_NO_ENTRY;MONOMOD_CECIL_NEW;MONOMOD_DEBUGSYMS</DefineConstants>
+    <DefineConstants>DEBUG;MONOMOD_NO_ENTRY;MONOMOD_CECIL_NEW;MONOMOD_DEBUGSYMS;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
@@ -40,7 +40,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
-    <DefineConstants>MONOMOD_NO_ENTRY;</DefineConstants>
+    <DefineConstants>MONOMOD_NO_ENTRY;MONOMOD_CECIL_NEW;MONOMOD_DEBUGSYMS;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Externalconsole>true</Externalconsole>

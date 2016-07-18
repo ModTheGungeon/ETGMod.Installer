@@ -629,20 +629,45 @@ namespace ETGModInstaller {
 
         public static bool Mod(this InstallerWindow ins, string file) {
             MonoMod.MonoMod monomod = new MonoMod.MonoMod(Path.Combine(ins.MainMod.Dir.FullName, file));
-            monomod.Out = new FileInfo(monomod.In.FullName + ".tmp");
+            monomod.Out = new FileInfo(monomod.In.FullName + ".tmp.dll");
             using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
                 using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
                     monomod.Logger = (string s) => ins.OnActivity();
                     monomod.Logger += (string s) => streamWriter.WriteLine(s);
                     // Unity wants .mdbs
                     monomod.WriterParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider();
+                    string db = Path.ChangeExtension(monomod.In.FullName, "pdb");
+                    string dbTmp = Path.ChangeExtension(monomod.Out.FullName, "pdb");
+                    if (!File.Exists(db)) {
+                        db = monomod.In.FullName + ".mdb";
+                        dbTmp = monomod.Out.FullName + ".mdb";
+                    }
+                    RETRY:
                     try {
                         monomod.AutoPatch(true, true);
                         monomod.Dispose();
                         File.Delete(monomod.In.FullName);
                         File.Move(monomod.Out.FullName, monomod.In.FullName);
+                        if (File.Exists(db)) {
+                            File.Delete(db);
+                        }
+                        if (File.Exists(dbTmp)) {
+                            File.Move(dbTmp, db);
+                        }
                         return true;
+                    } catch (ArgumentException e) {
+                        monomod.Dispose();
+                        if (File.Exists(db)) {
+                            File.Delete(db);
+                            if (File.Exists(dbTmp)) {
+                                File.Delete(dbTmp);
+                            }
+                            goto RETRY;
+                        }
+                        ins.LogLine(e.ToString());
+                        return false;
                     } catch (Exception e) {
+                        monomod.Dispose();
                         ins.LogLine(e.ToString());
                         return false;
                     }
@@ -651,7 +676,7 @@ namespace ETGModInstaller {
         }
         
         public static bool Mod(this InstallerWindow ins) {
-            ins.MainMod.Out = new FileInfo(ins.MainMod.In.FullName + ".tmp");
+            ins.MainMod.Out = new FileInfo(ins.MainMod.In.FullName + ".tmp.dll");
             //We need to reload the main dependencies here.
             //As they've been patched, Assembly-CSharp.dll will otherwise refer to the .mm assemblies.
             ins.MainMod.Module = null;
@@ -663,13 +688,38 @@ namespace ETGModInstaller {
                     ins.MainMod.Logger += (string s) => streamWriter.WriteLine(s);
                     // Unity wants .mdbs
                     ins.MainMod.WriterParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider();
+                    string db = Path.ChangeExtension(ins.MainMod.In.FullName, "pdb");
+                    string dbTmp = Path.ChangeExtension(ins.MainMod.Out.FullName, "pdb");
+                    if (!File.Exists(db)) {
+                        db = ins.MainMod.In.FullName + ".mdb";
+                        dbTmp = ins.MainMod.Out.FullName + ".mdb";
+                    }
+                    RETRY:
                     try {
                         ins.MainMod.AutoPatch(true, true);
                         ins.MainMod.Dispose();
                         File.Delete(ins.MainMod.In.FullName);
                         File.Move(ins.MainMod.Out.FullName, ins.MainMod.In.FullName);
+                        if (File.Exists(db)) {
+                            File.Delete(db);
+                        }
+                        if (File.Exists(dbTmp)) {
+                            File.Move(dbTmp, db);
+                        }
                         return true;
+                    } catch (ArgumentException e) {
+                        ins.MainMod.Dispose();
+                        if (File.Exists(db)) {
+                            File.Delete(db);
+                            if (File.Exists(dbTmp)) {
+                                File.Delete(dbTmp);
+                            }
+                            goto RETRY;
+                        }
+                        ins.LogLine(e.ToString());
+                        return false;
                     } catch (Exception e) {
+                        ins.MainMod.Dispose();
                         ins.LogLine(e.ToString());
                         return false;
                     }
