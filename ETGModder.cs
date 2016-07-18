@@ -78,7 +78,6 @@ namespace ETGModInstaller {
             ins.Uninstall();
 
             ins.Backup("UnityEngine.dll");
-            ins.Backup("UnityEngine.dll.mdb");
             ins.Backup("Assembly-CSharp.dll");
             ins.BackupETG();
 
@@ -138,6 +137,13 @@ namespace ETGModInstaller {
                 } else if (path.ToLower().EndsWith(".mm.dll")) {
                     ins.Log("Mod #").Log((++mi).ToString()).Log(": DLL: ").LogLine(path);
                     File.Copy(path, Path.Combine(ins.MainMod.Dir.FullName, Path.GetFileName(path)), true);
+                    string pdb = Path.ChangeExtension(path, "pdb");
+                    string mdb = path + ".mdb";
+                    if (File.Exists(pdb)) {
+                        File.Copy(pdb, Path.Combine(ins.MainMod.Dir.FullName, Path.GetFileName(pdb)), true);
+                    } else if (File.Exists(mdb)) {
+                        File.Copy(mdb, Path.Combine(ins.MainMod.Dir.FullName, Path.GetFileName(mdb)), true);
+                    }
                 } else {
                     ins.Log("Mod #").Log((++mi).ToString()).Log(": Folder: ").LogLine(path);
 
