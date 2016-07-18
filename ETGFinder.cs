@@ -210,6 +210,7 @@ namespace ETGModInstaller {
             }
 
             ins.ModVersion = null;
+            ins.MainMod?.Dispose();
             if (path == null) {
                 ins.MainMod = null;
                 ins.Invoke(delegate () {

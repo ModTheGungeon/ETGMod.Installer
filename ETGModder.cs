@@ -321,6 +321,7 @@ namespace ETGModInstaller {
 
             ins.LogLine("Reloading Assembly-CSharp.dll");
             ins.SetProgress("Reloading Assembly-CSharp.dll", files.Length);
+            ins.MainMod?.Dispose();
             ins.MainMod = new MonoMod.MonoMod(ins.MainMod.In);
             ins.MainMod.Read(true);
             ins.EndProgress("Uninstalling complete.");
@@ -628,7 +629,7 @@ namespace ETGModInstaller {
 
         public static bool Mod(this InstallerWindow ins, string file) {
             MonoMod.MonoMod monomod = new MonoMod.MonoMod(Path.Combine(ins.MainMod.Dir.FullName, file));
-            monomod.Out = monomod.In;
+            monomod.Out = new FileInfo(monomod.In.FullName + ".tmp");
             using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
                 using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
                     monomod.Logger = (string s) => ins.OnActivity();
@@ -637,6 +638,9 @@ namespace ETGModInstaller {
                     monomod.WriterParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider();
                     try {
                         monomod.AutoPatch(true, true);
+                        monomod.Dispose();
+                        File.Delete(monomod.In.FullName);
+                        File.Move(monomod.Out.FullName, monomod.In.FullName);
                         return true;
                     } catch (Exception e) {
                         ins.LogLine(e.ToString());
@@ -647,7 +651,7 @@ namespace ETGModInstaller {
         }
         
         public static bool Mod(this InstallerWindow ins) {
-            ins.MainMod.Out = ins.MainMod.In;
+            ins.MainMod.Out = new FileInfo(ins.MainMod.In.FullName + ".tmp");
             //We need to reload the main dependencies here.
             //As they've been patched, Assembly-CSharp.dll will otherwise refer to the .mm assemblies.
             ins.MainMod.Module = null;
@@ -661,6 +665,9 @@ namespace ETGModInstaller {
                     ins.MainMod.WriterParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider();
                     try {
                         ins.MainMod.AutoPatch(true, true);
+                        ins.MainMod.Dispose();
+                        File.Delete(ins.MainMod.In.FullName);
+                        File.Move(ins.MainMod.Out.FullName, ins.MainMod.In.FullName);
                         return true;
                     } catch (Exception e) {
                         ins.LogLine(e.ToString());
