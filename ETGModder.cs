@@ -199,6 +199,11 @@ namespace ETGModInstaller {
 
             ins.PatchExe();
 
+            // We need to reload the main dependencies anyway.
+            // As they've been patched, Assembly-CSharp.dll will otherwise refer to the .mm assemblies.
+            // And as their dependencies get patched, we need to actually unload their symbol readers here.
+            ins.MainMod.Dispose();
+
             if (!ins.Mod("UnityEngine.dll")) {
                 return;
             }
@@ -321,7 +326,7 @@ namespace ETGModInstaller {
 
             ins.LogLine("Reloading Assembly-CSharp.dll");
             ins.SetProgress("Reloading Assembly-CSharp.dll", files.Length);
-            ins.MainMod?.Dispose();
+            ins.MainMod.Dispose();
             ins.MainMod = new MonoMod.MonoMod(ins.MainMod.In);
             ins.MainMod.Read(true);
             ins.EndProgress("Uninstalling complete.");
@@ -677,10 +682,6 @@ namespace ETGModInstaller {
         
         public static bool Mod(this InstallerWindow ins) {
             ins.MainMod.Out = new FileInfo(ins.MainMod.In.FullName + ".tmp.dll");
-            //We need to reload the main dependencies here.
-            //As they've been patched, Assembly-CSharp.dll will otherwise refer to the .mm assemblies.
-            ins.MainMod.Module = null;
-            ins.MainMod.Dependencies.Clear();
 
             using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
                 using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
