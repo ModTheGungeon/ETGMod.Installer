@@ -582,6 +582,8 @@ namespace ETGModInstaller {
                 Console.WriteLine("Running ETGMod.Installer as post compilation task.");
                 Console.WriteLine("Version: " + Version);
 
+                args[1] = Path.GetFullPath(args[1]);
+
                 ETGModder.OverridePaths = new List<string>();
                 Console.WriteLine("Scanning for builds in " + args[1]);
                 string[] files = Directory.GetFiles(args[1]);
@@ -590,7 +592,6 @@ namespace ETGModInstaller {
                     if (!file.EndsWith(".mm.dll")) {
                         continue;
                     }
-                    file = Path.GetFullPath(file);
                     ETGModder.OverridePaths.Add(file);
                     Console.WriteLine("Added " + file);
                 }
