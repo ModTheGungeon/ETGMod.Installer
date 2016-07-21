@@ -8,6 +8,7 @@ using System.Text;
 using System.Diagnostics;
 using System.Threading;
 using System.Windows.Forms;
+using System.Reflection;
 
 namespace ETGModInstaller {
     public static class ETGModder {
@@ -776,7 +777,7 @@ namespace ETGModInstaller {
             }
 
             Process reboot = new Process();
-            reboot.StartInfo.FileName = Process.GetCurrentProcess().MainModule.FileName;
+            reboot.StartInfo.FileName = Assembly.GetEntryAssembly().Location;
             reboot.StartInfo.Arguments = "--clearsymbols \"" + ins.MainMod.Dir.FullName + "\"";
             reboot.StartInfo.CreateNoWindow = true;
             reboot.StartInfo.UseShellExecute = true;
