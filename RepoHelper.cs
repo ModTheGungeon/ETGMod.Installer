@@ -55,6 +55,9 @@ namespace ETGModInstaller {
 
         public static Action GetAPIModsCallback;
         public static List<Tuple<string, string>> GetAPIMods() {
+            if (ETGModder.OverridePaths != null) {
+                IsOffline = true;
+            }
             if (IsOffline) {
                 return new List<Tuple<string, string>>() {
                     Tuple.Create("OFFLINE MODE.", ""),

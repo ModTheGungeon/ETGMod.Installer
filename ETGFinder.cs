@@ -15,6 +15,8 @@ using Mono.Cecil.Cil;
 namespace ETGModInstaller {
     public static class ETGFinder {
 
+        public static Action<bool> OnExeSelected;
+
         public static bool IsBinaryWrapped = false;
         public static string MainName {
             get {
@@ -218,6 +220,7 @@ namespace ETGModInstaller {
                     ins.ExeStatusLabel.BackColor = Color.FromArgb(127, 255, 63, 63);
                     ins.ExePathBox.Text = "";
                     ins.InstallButton.Enabled = false;
+                    OnExeSelected?.Invoke(false);
                 });
                 return;
             }
@@ -280,6 +283,7 @@ namespace ETGModInstaller {
                 ins.ExePathBox.Text = origPath;
                 ins.InstallButton.Enabled = true;
                 ETGInstallerSettings.Save();
+                OnExeSelected?.Invoke(true);
             });
         }
         

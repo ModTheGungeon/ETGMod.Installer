@@ -11,6 +11,8 @@ using System.Threading;
 namespace ETGModInstaller {
     public static class ETGModder {
 
+        public static Action<bool> OnInstalled = (bool installed) => InstallerWindow.Instance.SetMainEnabled(true);
+
         public static bool IsOffline = false;
 
         public static string LogPath;
@@ -27,6 +29,7 @@ namespace ETGModInstaller {
             "UnityEngine.Resources", "UnloadUnusedAssets"
         );
 
+        public static List<string> OverridePaths;
         public static List<string> Blacklist = new List<string>();
         
         public static void Install(this InstallerWindow ins) {
@@ -86,7 +89,7 @@ namespace ETGModInstaller {
 
             //Setup the files and MonoMod instances
             int mi = -1;
-            if (!IsOffline) {
+            if (OverridePaths == null && !IsOffline) {
                 mi = 0;
                 ins.LogLine("Mod #0: Base");
                 //Check if the revision online is newer
@@ -99,6 +102,7 @@ namespace ETGModInstaller {
                     }
                 }
                 if (!IsOffline && !ins.UnzipMod(ins.DownloadCached(RepoHelper.ETGModURL, "ETGMOD.zip"))) {
+                    OnInstalled?.Invoke(false);
                     return;
                 }
                 RepoHelper.Revision = revisionOnline;
@@ -122,16 +126,26 @@ namespace ETGModInstaller {
                 }
                 ins.Log("Mod #").Log((++mi).ToString()).Log(": ").LogLine(t.Item1);
                 if (!ins.UnzipMod(ins.DownloadCached(t.Item2, t.Item1 + ".zip"))) {
+                    OnInstalled?.Invoke(false);
                     return;
                 }
             }
 
-            for (int pi = 0; pi < ins.AdvancedPathBoxes.Count; pi++) {
-                string path = ins.AdvancedPathBoxes[pi].Text;
+            List<string> paths = OverridePaths;
+            if (paths == null) {
+                paths = new List<string>();
+                for (int pi = 0; pi < ins.AdvancedPathBoxes.Count; pi++) {
+                    paths.Add(ins.AdvancedPathBoxes[pi].Text);
+                }
+            }
+
+            for (int pi = 0; pi < paths.Count; pi++) {
+                string path = paths[pi];
 
                 if (path.ToLower().EndsWith(".zip")) {
                     ins.Log("Mod #").Log((++mi).ToString()).Log(": ZIP: ").LogLine(path);
                     if (!ins.UnzipMod(File.OpenRead(path))) {
+                        OnInstalled?.Invoke(false);
                         return;
                     }
                 } else if (path.ToLower().EndsWith(".mm.dll")) {
@@ -205,10 +219,12 @@ namespace ETGModInstaller {
             ins.MainMod.Dispose();
 
             if (!ins.Mod("UnityEngine.dll")) {
+                OnInstalled?.Invoke(false);
                 return;
             }
 
             if (!ins.Mod()) {
+                OnInstalled?.Invoke(false);
                 return;
             }
             
@@ -221,13 +237,13 @@ namespace ETGModInstaller {
             ins.LogLine("upload output_log.txt somewhere and give it @0x0ade.");
             ins.LogLine("Good luck - Have fun!");
             ins.ExeSelected(ExePath, " [just installed]");
-            ins.SetMainEnabled(true);
 
             if (AutoRun) {
                 Process etg = new Process();
                 etg.StartInfo.FileName = ExePath;
                 etg.Start();
             }
+            OnInstalled?.Invoke(true);
         }
         
         public static bool Backup(this InstallerWindow ins, string file) {

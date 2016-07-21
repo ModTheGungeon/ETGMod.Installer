@@ -578,6 +578,43 @@ namespace ETGModInstaller {
 
         [STAThread]
         public static void Main(string[] args) {
+            if (args.Length == 2 && (args[0] == "--postcompile" || args[0] == "-pc")) {
+                Console.WriteLine("Running ETGMod.Installer as post compilation task.");
+                Console.WriteLine("Version: " + Version);
+
+                ETGModder.OverridePaths = new List<string>();
+                Console.WriteLine("Scanning for builds in " + args[1]);
+                string[] files = Directory.GetFiles(args[1]);
+                for (int i = 0; i < files.Length; i++) {
+                    string file = files[i];
+                    if (!file.EndsWith(".mm.dll")) {
+                        continue;
+                    }
+                    file = Path.GetFullPath(file);
+                    ETGModder.OverridePaths.Add(file);
+                    Console.WriteLine("Added " + file);
+                }
+
+                ETGInstallerSettings.SaveEnabled = false;
+                ETGFinder.OnExeSelected += delegate (bool selected) {
+                    if (!selected) {
+                        throw new InvalidOperationException("ETGMod.Installer not prepared to run as post compilation task! Set up the .exe path first!");
+                    }
+
+                    ETGModder.OnInstalled += delegate (bool installed) {
+                        if (installed) {
+                            Application.Exit();
+                        }
+                    };
+                    Task.Run((Action) Instance.Install);
+                };
+                new InstallerWindow();
+
+                Instance.ShowDialog();
+
+                return;
+            }
+
             Console.WriteLine("Entering the holy realm of ETGMod.");
             Application.EnableVisualStyles();
 

@@ -11,6 +11,10 @@ using System.Windows.Forms;
 namespace ETGModInstaller {
     public static class ETGInstallerSettings {
 
+        public static bool Enabled = true;
+        public static bool LoadEnabled = true;
+        public static bool SaveEnabled = true;
+
         public static string ConfigurationPath {
             get {
                 if (ETGFinder.Platform.HasFlag(ETGPlatform.Windows)) {
@@ -72,6 +76,9 @@ namespace ETGModInstaller {
         }
 
         public static void Load() {
+            if (!Enabled || !LoadEnabled) {
+                return;
+            }
             string path = ConfigurationPath;
             if (!File.Exists(path)) {
                 return;
@@ -105,6 +112,9 @@ namespace ETGModInstaller {
         }
 
         public static void Save() {
+            if (!Enabled || !SaveEnabled) {
+                return;
+            }
             string path = ConfigurationPath;
             if (File.Exists(path)) {
                 File.Delete(path);
