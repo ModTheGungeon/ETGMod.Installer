@@ -7,6 +7,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Diagnostics;
 using System.Threading;
+using System.Windows.Forms;
 
 namespace ETGModInstaller {
     public static class ETGModder {
@@ -742,6 +743,51 @@ namespace ETGModInstaller {
                     }
                 }
             }
+        }
+
+        public static void ClearSymbols(this InstallerWindow ins, string path = null) {
+            if (path == null) {
+                if (ins.MainMod == null) {
+                    return;
+                }
+
+                path = ins.MainMod.Dir.FullName;
+                ins.LogLine("Clearing symbols...");
+            }
+
+            string[] files = Directory.GetFiles(path);
+            ins.InitProgress("Clearing symbols", files.Length + 1);
+            for (int i = 0; i < files.Length; i++) {
+                string file = Path.GetFileName(files[i]);
+                if (!file.EndsWith(".pdb") && !file.EndsWith(".mdb")) {
+                    continue;
+                }
+                ins.Log("Removing: ").LogLine(file);
+                ins.SetProgress("Removing: " + file, i);
+                File.Delete(files[i]);
+            }
+
+            ins.EndProgress("Clearing symbols complete.");
+        }
+
+        public static void RestartAndClearSymbols(this InstallerWindow ins) {
+            if (ins.MainMod == null) {
+                return;
+            }
+
+            Process reboot = new Process();
+            reboot.StartInfo.FileName = Process.GetCurrentProcess().MainModule.FileName;
+            reboot.StartInfo.Arguments = "--clearsymbols \"" + ins.MainMod.Dir.FullName + "\"";
+            reboot.StartInfo.CreateNoWindow = true;
+            reboot.StartInfo.UseShellExecute = true;
+
+            if (ETGFinder.Platform.HasFlag(ETGPlatform.Unix)) {
+                reboot.StartInfo.Arguments = "\"" + reboot.StartInfo.FileName + "\" " + reboot.StartInfo.Arguments;
+                reboot.StartInfo.FileName = "mono";
+            }
+
+            reboot.Start();
+            Application.Exit();
         }
 
         public static List<Tuple<byte[], byte[]>> GenOrigReplacementMap(params string[] sa) {

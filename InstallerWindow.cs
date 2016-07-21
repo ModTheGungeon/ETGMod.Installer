@@ -18,7 +18,9 @@ using System.Drawing.Imaging;
 
 namespace ETGModInstaller {
     public class InstallerWindow : Form {
-        
+
+        public static string InstantClearSymbols;
+
         public static Version Version = Assembly.GetEntryAssembly().GetName().Version;
 
         public static InstallerWindow Instance;
@@ -578,6 +580,11 @@ namespace ETGModInstaller {
 
         [STAThread]
         public static void Main(string[] args) {
+            if (args.Length == 2 && (args[0] == "--clearsymbols" || args[0] == "-cs")) {
+                InstantClearSymbols = args[1];
+                Thread.Sleep(2000);
+            }
+
             if (args.Length == 2 && (args[0] == "--postcompile" || args[0] == "-pc")) {
                 Console.WriteLine("Running ETGMod.Installer as post compilation task.");
                 Console.WriteLine("Version: " + Version);

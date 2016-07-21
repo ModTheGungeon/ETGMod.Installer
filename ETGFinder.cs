@@ -11,6 +11,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Mono.Collections.Generic;
 using Mono.Cecil.Cil;
+using Mono.CompilerServices.SymbolWriter;
 
 namespace ETGModInstaller {
     public static class ETGFinder {
@@ -185,6 +186,11 @@ namespace ETGModInstaller {
 
 
         public static void ExeSelected(this InstallerWindow ins, string path, string suffix = null) {
+            if (InstallerWindow.InstantClearSymbols != null) {
+                InstallerWindow.Instance.ClearSymbols(InstallerWindow.InstantClearSymbols);
+                InstallerWindow.InstantClearSymbols = null;
+            }
+
             if (string.IsNullOrEmpty(path)) {
                 path = null;
             }
@@ -232,6 +238,11 @@ namespace ETGModInstaller {
             } catch (BadImageFormatException) {
                 //this is not the assembly we need...
                 ins.ExeSelected(null);
+                return;
+            } catch (MonoSymbolFileException) {
+                // Mono.Cecil keeps the file handle for itself; We need to restart here.
+                ins.MainMod.Dispose();
+                ins.RestartAndClearSymbols();
                 return;
             } catch (Exception e) {
                 //Something went wrong.
