@@ -529,12 +529,14 @@ namespace ETGModInstaller {
 
             }
 
-            string prefix = "ETGMOD";
+            string fallback = "ETGMOD";
+            string prefix = fallback;
             string version = File.ReadAllText(Path.Combine(ins.MainMod.Dir.Parent.FullName, "StreamingAssets", "version.txt")).Trim();
             if (version.Contains("b")) {
                 prefix += "-BETA";
             }
 
+            fallback += "/";
             prefix += "/";
             
             string pathGame = ins.MainMod.Dir.FullName;
@@ -576,7 +578,7 @@ namespace ETGModInstaller {
                     string entryName = entry.FullName;
                     if (entry.FullName.StartsWith(prefix)) {
                         prefixCount++;
-                    } else if (entry.FullName.StartsWith("ETGMOD/")) {
+                    } else if (entry.FullName.StartsWith(fallback)) {
                         fallbackCount++;
                     } else {
                         noneCount++;
@@ -586,10 +588,10 @@ namespace ETGModInstaller {
                 if (0 < prefixCount) {
                     ins.Log(prefix).LogLine(" found.");
                     ins.InitProgress("Extracting ZIP", prefixCount);
-                } else if (0 == prefixCount && 0 < fallbackCount) {
-                    ins.Log("Didn't find ").Log(prefix).LogLine(" - HALT THE GEARS!");
-                    ins.EndProgress("Halted.").SetProgress(0);
-                    return false;
+                } else if (0 < fallbackCount) {
+                    ins.Log("Didn't find ").Log(prefix).Log(", falling back to ").Log(fallback).LogLine(".");
+                    prefix = fallback;
+                    ins.InitProgress("Extracting ZIP", fallbackCount);
                 } else {
                     ins.LogLine("Is this even a ETGMod ZIP? uh...");
                     prefix = "";
