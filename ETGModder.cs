@@ -530,6 +530,11 @@ namespace ETGModInstaller {
             }
 
             string prefix = "ETGMOD";
+            string version = File.ReadAllText(Path.Combine(ins.MainMod.Dir.Parent.FullName, "StreamingAssets", "version.txt")).Trim();
+            if (version.Contains("b")) {
+                prefix += "-BETA";
+            }
+
             prefix += "/";
             
             string pathGame = ins.MainMod.Dir.FullName;
