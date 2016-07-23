@@ -795,7 +795,7 @@ namespace ETGModInstaller {
             }
 
             reboot.Start();
-            Application.Exit();
+            Environment.Exit(1);
         }
 
         public static List<Tuple<byte[], byte[]>> GenOrigReplacementMap(params string[] sa) {

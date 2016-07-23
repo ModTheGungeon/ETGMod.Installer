@@ -611,7 +611,7 @@ namespace ETGModInstaller {
 
                     ETGModder.OnInstalled += delegate (bool installed) {
                         if (installed) {
-                            Application.Exit();
+                            Environment.Exit(0);
                         }
                     };
                     Task.Run((Action) Instance.Install);
