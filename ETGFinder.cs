@@ -264,16 +264,59 @@ namespace ETGModInstaller {
                         break;
                     }
                 }
+                /*
+                .method private hidebysig specialname rtspecialname static 
+		            void .cctor () cil managed 
+	            {
+		            // Method begins at RVA 0x2d6cec
+		            // Code size 184 (0xb8)
+		            .maxstack 3
+
+		            IL_0000: ldc.i4.0
+		            IL_0001: ldc.i4.1
+		            IL_0002: ldc.i4.0
+		            IL_0003: newobj instance void [mscorlib]System.Version::.ctor(int32, int32, int32)
+		            IL_0008: stsfld class [mscorlib]System.Version ETGMod::BaseVersion
+		            IL_000d: ldc.i4.0
+		            IL_000e: stsfld int32 ETGMod::BaseTravisBuild
+		            IL_0013: ldc.i4.1
+		            IL_0014: ldstr "debug"
+		            IL_0019: newobj instance void ETGMod/Profile::.ctor(int32, string)
+		            IL_001e: stsfld class ETGMod/Profile ETGMod::BaseProfile
+                */
                 if (ModCctor != null) {
+                    string modVersion = "";
+                    string modBuild = "";
+                    string modProfile = "";
                     for (int i = 0; i < ModCctor.Body.Instructions.Count; i++) {
-                        if (!(ModCctor.Body.Instructions[i].Operand is FieldReference)) {
+                        Instruction instructionField = ModCctor.Body.Instructions[i];
+                        if (instructionField.OpCode != OpCodes.Stsfld) {
                             continue;
                         }
-                        if (((FieldReference) ModCctor.Body.Instructions[i].Operand).Name == "BaseVersionString") {
-                            ins.ModVersion = getString(ModCctor.Body.Instructions, i - 1);
-                            break;
+                        FieldReference field = (FieldReference) instructionField.Operand;
+                        if (field.Name == "BaseVersion") {
+                            int count = ((MethodReference) ModCctor.Body.Instructions[i - 1].Operand).Parameters.Count;
+                            for (int ii = i - count - 1; ii < i - 1; ii++) {
+                                modVersion += MonoMod.MonoMod.GetInt(ModCctor.Body.Instructions[ii]);
+                                if (ii < i - 2) {
+                                    modVersion += ".";
+                                }
+                            }
+                        }
+                        if (field.Name == "BaseTravisBuild") {
+                            int build = MonoMod.MonoMod.GetInt(ModCctor.Body.Instructions[i - 1]);
+                            if (build != 0) {
+                                modBuild = "-" + build;
+                            }
+                        }
+                        if (field.Name == "BaseProfile") {
+                            string profile = ModCctor.Body.Instructions[i - 2].Operand as string;
+                            if (!string.IsNullOrEmpty(profile)) {
+                                modProfile = "-" + profile;
+                            }
                         }
                     }
+                    ins.ModVersion = modVersion + modBuild + modProfile;
                 }
             }
             
