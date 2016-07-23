@@ -346,6 +346,9 @@ namespace ETGModInstaller {
             ins.SetProgress("Reloading Assembly-CSharp.dll", files.Length);
             ins.MainMod.Dispose();
             ins.MainMod = new MonoMod.MonoMod(ins.MainMod.In);
+#if DEBUG
+            ins.MainMod.SkipOptimization = true;
+#endif
             ins.MainMod.Read(true);
             ins.EndProgress("Uninstalling complete.");
         }
@@ -659,6 +662,9 @@ namespace ETGModInstaller {
 
         public static bool Mod(this InstallerWindow ins, string file) {
             MonoMod.MonoMod monomod = new MonoMod.MonoMod(Path.Combine(ins.MainMod.Dir.FullName, file));
+#if DEBUG
+            ins.MainMod.SkipOptimization = true;
+#endif
             monomod.Out = new FileInfo(monomod.In.FullName + ".tmp.dll");
             using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
                 using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
