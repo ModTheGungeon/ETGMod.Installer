@@ -233,6 +233,7 @@ namespace ETGModInstaller {
             ins.MainMod = new MonoMod.MonoMod(path);
 #if DEBUG
             ins.MainMod.SkipOptimization = true;
+            MonoMod.MonoModSymbolReader.MDBDEBUG = true;
 #endif
 
             //We want to read the assembly now already. Writing is also handled manually.

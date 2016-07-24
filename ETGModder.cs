@@ -347,9 +347,26 @@ namespace ETGModInstaller {
             ins.MainMod.Dispose();
             ins.MainMod = new MonoMod.MonoMod(ins.MainMod.In);
 #if DEBUG
-            ins.MainMod.SkipOptimization = true;
+            if (LogPath == null) { ins.MainMod.Read(true); } else
+            using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
+                using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
+                    ins.MainMod.Logger = (string s) => ins.OnActivity();
+                    ins.MainMod.Logger += (string s) => streamWriter.WriteLine(s);
+                    ins.MainMod.SkipOptimization = true;
+                    MonoMod.MonoModSymbolReader.MDBDEBUG = true;
 #endif
-            ins.MainMod.Read(true);
+                    ins.MainMod.Read(true);
+#if DEBUG
+                    Mono.Cecil.TypeDefinition etgMod = ins.MainMod.Module.GetType("ETGMod");
+                    if (etgMod != null) {
+                        for (int i = 0; i < etgMod.Methods.Count; i++) {
+                            Mono.Cecil.Cil.MethodBody body = etgMod.Methods[i].Body;
+                        }
+                    }
+                }
+            }
+            ins.MainMod.Logger = null;
+#endif
             ins.EndProgress("Uninstalling complete.");
         }
         
