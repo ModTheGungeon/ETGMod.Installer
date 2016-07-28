@@ -289,6 +289,7 @@ namespace ETGModInstaller {
             if (ins.MainMod == null) {
                 return;
             }
+			ins.MainMod.Dispose();
 
             // Uninstall can be invoked without the installer running
             ins.Invoke(() => ExePath = ins.ExePathBox.Text).Wait();
@@ -344,7 +345,6 @@ namespace ETGModInstaller {
 
             ins.LogLine("Reloading Assembly-CSharp.dll");
             ins.SetProgress("Reloading Assembly-CSharp.dll", files.Length);
-            ins.MainMod.Dispose();
             ins.MainMod = new MonoMod.MonoMod(ins.MainMod.In);
 #if DEBUG
             if (LogPath == null) { ins.MainMod.Read(true); } else
