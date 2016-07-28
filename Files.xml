@@ -8,9 +8,9 @@
     <Reference Include="System.IO.Compression.FileSystem" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BinaryHelper.cs" />
-    <Compile Include="DeobfuscatorExt.cs" />
-    <Compile Include="ETGInstallerSettings.cs" />
+    <Compile Include="src\BinaryHelper.cs" />
+    <Compile Include="src\DeobfuscatorExt.cs" />
+    <Compile Include="src\ETGInstallerSettings.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\MonoModInline.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\MonoModNoNew.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\Platform.cs" />
@@ -18,15 +18,15 @@
     <Compile Include="lib-projs\MonoMod\MonoMod\MonoModOriginal.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\MonoModOriginalName.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\PlatformHelper.cs" />
-    <Compile Include="InstallerWindow.cs">
+    <Compile Include="src\InstallerWindow.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="CustomControls.cs">
+    <Compile Include="src\CustomControls.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="ETGFinder.cs" />
-    <Compile Include="RepoHelper.cs" />
-    <Compile Include="ETGModder.cs" />
+    <Compile Include="src\ETGFinder.cs" />
+    <Compile Include="src\RepoHelper.cs" />
+    <Compile Include="src\ETGModder.cs" />
   </ItemGroup>
     <ItemGroup>
     <EmbeddedResource Include="Assets\background.png" />
