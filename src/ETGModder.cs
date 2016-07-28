@@ -225,7 +225,7 @@ namespace ETGModInstaller {
                 return;
             }
 
-            if (!ins.Mod()) {
+            if (!ins.Mod("Assembly-CSharp.dll")) {
                 OnInstalled?.Invoke(false);
                 return;
             }
@@ -581,7 +581,7 @@ namespace ETGModInstaller {
                                 Version minv = new Version(sr.ReadLine().Trim());
                                 if (InstallerWindow.Version < minv) {
                                     ins.LogLine("There's a new ETGMod Installer version!");
-                                    ins.LogLine("Visit https://0x0ade.github.io/etgmod/#download to download it.");
+                                    ins.LogLine("Visit https://modthegungeon.github.io/#download to download it.");
                                     ins.Log("(Minimum installer version for this ETGMod version: ").LogLine(minv.ToString()).Log(")");
                                     ins.Invoke(() => ins.Progress.BrushProgress =
                                         new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(255, 63, 63, 91))
@@ -721,54 +721,6 @@ namespace ETGModInstaller {
                         return false;
                     } catch (Exception e) {
                         monomod.Dispose();
-                        ins.LogLine(e.ToString());
-                        return false;
-                    }
-                }
-            }
-        }
-        
-        public static bool Mod(this InstallerWindow ins) {
-            ins.MainMod.Out = new FileInfo(ins.MainMod.In.FullName + ".tmp.dll");
-
-            using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
-                using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
-                    ins.MainMod.Logger = (string s) => ins.OnActivity();
-                    ins.MainMod.Logger += (string s) => streamWriter.WriteLine(s);
-                    // Unity wants .mdbs
-                    ins.MainMod.WriterParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider();
-                    string db = Path.ChangeExtension(ins.MainMod.In.FullName, "pdb");
-                    string dbTmp = Path.ChangeExtension(ins.MainMod.Out.FullName, "pdb");
-                    if (!File.Exists(db)) {
-                        db = ins.MainMod.In.FullName + ".mdb";
-                        dbTmp = ins.MainMod.Out.FullName + ".mdb";
-                    }
-                    RETRY:
-                    try {
-                        ins.MainMod.AutoPatch(true, true);
-                        ins.MainMod.Dispose();
-                        File.Delete(ins.MainMod.In.FullName);
-                        File.Move(ins.MainMod.Out.FullName, ins.MainMod.In.FullName);
-                        if (File.Exists(db)) {
-                            File.Delete(db);
-                        }
-                        if (File.Exists(dbTmp)) {
-                            File.Move(dbTmp, db);
-                        }
-                        return true;
-                    } catch (ArgumentException e) {
-                        ins.MainMod.Dispose();
-                        if (File.Exists(db)) {
-                            File.Delete(db);
-                            if (File.Exists(dbTmp)) {
-                                File.Delete(dbTmp);
-                            }
-                            goto RETRY;
-                        }
-                        ins.LogLine(e.ToString());
-                        return false;
-                    } catch (Exception e) {
-                        ins.MainMod.Dispose();
                         ins.LogLine(e.ToString());
                         return false;
                     }
