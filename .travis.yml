@@ -6,8 +6,8 @@ env:
         - "BUILD_DIR=$TRAVIS_BUILD_DIR"
 script:
     - chmod +x ./replace-version.sh
-    - chmod +x ./build.sh
+    - chmod +x ./build-msbuild.sh
     - chmod +x ./github-release.sh
     - ./replace-version.sh
-    - ./build.sh
+    - ./build-msbuild.sh
 after_success: ./github-release.sh "$TRAVIS_REPO_SLUG" "$TRAVIS_TAG" bin/Release/ETGMod.Installer.exe
