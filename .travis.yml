@@ -7,8 +7,7 @@ env:
         - "BUILD_DIR=$TRAVIS_BUILD_DIR"
 before_install:
     - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
-    - sudo apt-get update -qq
-    - sudo apt-get install -y libicu52 libunwind8 git-lfs=1.1.0 build-essential
+    - sudo apt-get install -y libicu52 libunwind8 git-lfs=1.1.0
     - git lfs install
     - git lfs pull
 script:
