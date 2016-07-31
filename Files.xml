@@ -1,7 +1,13 @@
 <Project DefaultTargets="Compile" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Reference Include="mscorlib">
+      <HintPath Condition=" '$(TravisCore)' == 'true' ">lib-dotnet\mscorlib.dll</HintPath>
+    </Reference>
     <Reference Include="System">
       <HintPath Condition=" '$(TravisCore)' == 'true' ">lib-dotnet\System.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core">
+      <HintPath Condition=" '$(TravisCore)' == 'true' ">lib-dotnet\System.Core.dll</HintPath>
     </Reference>
     <Reference Include="System.Windows.Forms">
       <HintPath Condition=" '$(TravisCore)' == 'true' ">lib-dotnet\System.Windows.Forms.dll</HintPath>
