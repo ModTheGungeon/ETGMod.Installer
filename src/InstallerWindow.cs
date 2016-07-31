@@ -91,7 +91,11 @@ namespace ETGModInstaller {
             OpenModDialog.FileOk += (object senderFileOk, CancelEventArgs eFileOk) => AddManualPathRows(OpenModDialog.FileNames);
 
             Text = "Mod the Gungeon Installer";
-            FormBorderStyle = FormBorderStyle.Sizable;
+            if (ETGFinder.Platform.HasFlag(ETGPlatform.Unix)) {
+                FormBorderStyle = FormBorderStyle.Sizable;
+            } else {
+                FormBorderStyle = FormBorderStyle.FixedDialog;
+            }
             ResizeRedraw = false;
             MaximizeBox = false;
             MinimizeBox = true;
