@@ -50,6 +50,9 @@ namespace ETGModInstaller {
 
             OnLoad["binarywrapped"] = (s) => InstallerWindow.Instance.AdvancedBinaryWrappedCheckbox.Checked = bool.Parse(s);
             OnSave["binarywrapped"] = () => InstallerWindow.Instance.AdvancedBinaryWrappedCheckbox.Checked.ToString();
+
+            OnLoad["etgversion"] = (s) => ETGFinder.VersionLastRun = s;
+            OnSave["etgversion"] = () => ETGFinder.Version;
         }
 
         public static void SetAdvanced(this InstallerWindow ins, string[] paths) {

@@ -60,6 +60,16 @@ namespace ETGModInstaller {
             }
         }
 
+        public static string Version {
+            get {
+                if (InstallerWindow.Instance.MainMod == null) {
+                    return null;
+                }
+                return File.ReadAllText(Path.Combine(InstallerWindow.Instance.MainMod.Dir.Parent.FullName, "StreamingAssets", "version.txt")).Trim();
+            }
+        }
+        public static string VersionLastRun;
+
         public static string SteamPath {
             get {
                 string path = null;

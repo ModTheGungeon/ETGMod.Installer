@@ -80,7 +80,11 @@ namespace ETGModInstaller {
             ins.LogLine("Entering the Modgeon");
 
             //Clean the game from any previous installation
-            ins.Uninstall();
+            if (ETGFinder.Version != ETGFinder.VersionLastRun && ETGFinder.VersionLastRun != null) {
+                ins.ClearBackup();
+            } else {
+                ins.Uninstall();
+            }
 
             ins.Backup("UnityEngine.dll");
             ins.Backup("Assembly-CSharp.dll");
@@ -369,6 +373,31 @@ namespace ETGModInstaller {
 #endif
             ins.EndProgress("Uninstalling complete.");
         }
+
+        public static void ClearBackup(this InstallerWindow ins) {
+            if (ins.MainMod == null) {
+                return;
+            }
+
+            string pathGame = ins.MainMod.Dir.FullName;
+            string pathCache = Path.Combine(pathGame, "ModBackup");
+            if (!Directory.Exists(pathCache)) {
+                return;
+            }
+
+            ins.LogLine("Clearing mod backup...");
+
+            string[] files = Directory.GetFiles(pathCache);
+            ins.InitProgress("Clearing mod backup", files.Length + 1);
+            for (int i = 0; i < files.Length; i++) {
+                string file = Path.GetFileName(files[i]);
+                ins.Log("Removing: ").LogLine(file);
+                ins.SetProgress("Removing: " + file, i);
+                File.Delete(files[i]);
+            }
+
+            ins.EndProgress("Clearing backup complete.");
+        }
         
         public static byte[] Download(this InstallerWindow ins, string url) {
             if (IsOffline) {
@@ -551,8 +580,7 @@ namespace ETGModInstaller {
 
             string fallback = "ETGMOD";
             string prefix = fallback;
-            string version = File.ReadAllText(Path.Combine(ins.MainMod.Dir.Parent.FullName, "StreamingAssets", "version.txt")).Trim();
-            if (version.Contains("b")) {
+            if (ETGFinder.Version.Contains("b")) {
                 prefix += "-BETA";
             }
 
