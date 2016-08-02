@@ -12,6 +12,8 @@ env:
         - "PATH=$PATH:$TRAVIS_MSBUILD_BIN"
 before_install:
     - git clone https://github.com/0x0ade/travis-msbuild.git
+    - chmod a+x "$TRAVIS_MSBUILD_BIN"/msbuild-prepare
+    - msbuild-prepare
 script:
     - chmod a+x ./replace-version.sh
     - ./replace-version.sh
