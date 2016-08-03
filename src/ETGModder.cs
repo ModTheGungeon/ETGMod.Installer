@@ -786,6 +786,10 @@ namespace ETGModInstaller {
                 return;
             }
 
+            if (ETGFinder.Version != ETGFinder.VersionLastRun && ETGFinder.VersionLastRun != null) {
+                ins.ClearBackup();
+            }
+
             Process reboot = new Process();
             reboot.StartInfo.FileName = Assembly.GetEntryAssembly().Location;
             reboot.StartInfo.Arguments = "--clearsymbols \"" + ins.MainMod.Dir.FullName + "\"";
