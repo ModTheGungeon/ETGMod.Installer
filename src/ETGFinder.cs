@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Reflection;
 using System.IO;
 using System.Drawing.Text;
+using System.Text.RegularExpressions;
 using Mono.Cecil;
 using System.Threading.Tasks;
 using System.ComponentModel;
@@ -65,7 +66,8 @@ namespace ETGModInstaller {
                 if (InstallerWindow.Instance.MainMod == null) {
                     return null;
                 }
-                return File.ReadAllText(Path.Combine(InstallerWindow.Instance.MainMod.Dir.Parent.FullName, "StreamingAssets", "version.txt")).Trim();
+                var str = File.ReadAllText(Path.Combine(InstallerWindow.Instance.MainMod.Dir.Parent.FullName, "StreamingAssets", "version.txt")).Trim();
+		return Regex.Split(str, "[\r\n]+")[0];
             }
         }
         public static string VersionLastRun;

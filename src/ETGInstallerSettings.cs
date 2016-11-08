@@ -7,6 +7,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Diagnostics;
 using System.Windows.Forms;
+using System.Text.RegularExpressions;
 
 namespace ETGModInstaller {
     public static class ETGInstallerSettings {
