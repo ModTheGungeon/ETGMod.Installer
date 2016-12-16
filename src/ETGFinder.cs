@@ -35,7 +35,7 @@ namespace ETGModInstaller {
                     return "EtG_OSX";
                 }
                 if (Platform.HasFlag(ETGPlatform.Linux)) {
-                    return IntPtr.Size == 4 ? "EtG.x86" : "EtG.x86_64";
+					return IntPtr.Size == 4 /*(32 bit)*/ ? "EtG.x86" : "EtG.x86_64";
                 }
 
                 return null;
@@ -67,7 +67,7 @@ namespace ETGModInstaller {
                     return null;
                 }
                 var str = File.ReadAllText(Path.Combine(InstallerWindow.Instance.MainMod.Dir.Parent.FullName, "StreamingAssets", "version.txt")).Trim();
-		return Regex.Split(str, "[\r\n]+")[0];
+                return Regex.Split(str, "[\r\n]+")[0];
             }
         }
         public static string VersionLastRun;

@@ -551,6 +551,15 @@ namespace ETGModInstaller {
             ETGInstallerSettings.Load();
             ETGInstallerSettings.Save();
 
+            AdvancedAddButton.Click += (object senderObject, EventArgs evArgs) => ETGInstallerSettings.Save();
+            AdvancedOfflineCheckbox.CheckedChanged += (object senderObject, EventArgs evArgs) => ETGInstallerSettings.Save();
+            AdvancedAutoRunCheckbox.CheckedChanged += (object senderObject, EventArgs evArgs) => ETGInstallerSettings.Save();
+            AdvancedBinaryWrappedCheckbox.CheckedChanged += (object senderObject, EventArgs evArgs) => ETGInstallerSettings.Save();
+            ExePathButton.Click += (object senderObject, EventArgs evArgs) => ETGInstallerSettings.Save();
+            for (int i = 0; i < AdvancedRemoveButtons.Count; i++) {
+                AdvancedRemoveButtons[i].Click += (object senderObject, EventArgs evArgs) => ETGInstallerSettings.Save();
+            }
+
             if (string.IsNullOrWhiteSpace(ExePathBox.Text)) {
                 Task.Run((Action) ETGFinder.FindETG);
             }

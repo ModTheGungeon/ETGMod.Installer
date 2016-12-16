@@ -16,20 +16,40 @@ namespace ETGModInstaller {
         public static bool LoadEnabled = true;
         public static bool SaveEnabled = true;
 
+		public const string CONFIG_NAME = "modthegungeon.conf";
+
         public static string ConfigurationPath {
             get {
+                string home = null;
+                if (ETGFinder.Platform.HasFlag(ETGPlatform.Linux) || ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
+                   home = Environment.GetEnvironmentVariable("HOME");
+                }
+
                 if (ETGFinder.Platform.HasFlag(ETGPlatform.Windows)) {
-                    return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "etgmodconfig.txt");
+                    return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), CONFIG_NAME);
                 } else if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
-                    return Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".etgmodconfig.txt");
+                    string path = Path.Combine(home, $".{CONFIG_NAME}");
+                    if (Directory.Exists(Path.Combine(home, "/Library/Application Support/"))) {
+                        string dir = Path.Combine(home, "/Library/Application Support/ETGMod");
+                        if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                        path = Path.Combine(dir, CONFIG_NAME);
+                    }
+                    return path;
                 } else if (ETGFinder.Platform.HasFlag(ETGPlatform.Linux)) {
                     string xdg = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
-                    if (string.IsNullOrWhiteSpace(xdg)) {
-                        xdg = Path.Combine(Environment.GetEnvironmentVariable("HOME"), ".config");
+                    string path = null;
+                    if (xdg == null) {
+                        if (Directory.Exists(Path.Combine(home, ".config"))) {
+                            path = Path.Combine(home, ".config", CONFIG_NAME);
+                        } else {
+                            path = Path.Combine(home, $".{CONFIG_NAME}");
+                        }
+                    } else {
+                        path = Path.Combine(xdg, CONFIG_NAME);
                     }
-                    return Path.Combine(xdg, "", "etgmodconfig.txt");
+                    return path;
                 }
-                return Path.Combine(".", "etgmodconfig.txt");
+                return Path.Combine(".", CONFIG_NAME);
             }
         }
 
@@ -87,30 +107,11 @@ namespace ETGModInstaller {
             if (!File.Exists(path)) {
                 return;
             }
-            string[] lines = File.ReadAllLines(path);
-            for (int i = 0; i < lines.Length; i++) {
-                string line = lines[i];
-                if (string.IsNullOrWhiteSpace(line)) {
-                    continue;
-                }
-                line = line.Trim();
-                string[] data = line.Split(':');
-                if (2 < data.Length) {
-                    StringBuilder newData = new StringBuilder();
-                    for (int ii = 1; ii < data.Length; ii++) {
-                        newData.Append(data[ii]);
-                        if (ii < data.Length - 1) {
-                            newData.Append(':');
-                        }
-                    }
-                    data = new string[] { data[0], newData.ToString() };
-                }
-                data[0] = data[0].Trim();
-                data[1] = data[1].Trim();
-
+            var parsed = Parser.Parse(File.ReadAllText(path));
+            foreach (KeyValuePair<string, string> kv in parsed) {
                 Action<string> d;
-                if (data[1].Length != 0 && OnLoad.TryGetValue(data[0], out d)) {
-                    d(data[1]);
+                if (OnLoad.TryGetValue(kv.Key, out d)) {
+                    d(kv.Value);
                 }
             }
         }
@@ -129,10 +130,8 @@ namespace ETGModInstaller {
                     if (string.IsNullOrWhiteSpace(value)) {
                         continue;
                     }
-                    writer.Write(nameGetPair.Key);
-                    writer.Write(":");
-                    writer.Write(value);
-                    writer.WriteLine();
+                    string key = nameGetPair.Key;
+                    writer.WriteLine(Parser.CreateEntry(key, value));
                 }
             }
         }
