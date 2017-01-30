@@ -64,13 +64,6 @@
     <Compile Include="src\BinaryHelper.cs" />
     <Compile Include="src\DeobfuscatorExt.cs" />
     <Compile Include="src\ETGInstallerSettings.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModInline.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModNoNew.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\Platform.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModOnPlatform.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModOriginal.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModOriginalName.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\PlatformHelper.cs" />
     <Compile Include="src\InstallerWindow.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -81,7 +74,7 @@
     <Compile Include="src\RepoHelper.cs" />
     <Compile Include="src\ETGModder.cs" />
   </ItemGroup>
-    <ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Include="Assets\background.png" />
     <EmbeddedResource Include="Assets\icons\main.png" />
     <EmbeddedResource Include="Assets\icons\main-large.png" />
@@ -180,63 +173,28 @@
     <Compile Include="lib-projs\cecil\Mono.Collections.Generic\*.cs" />
     <Compile Include="lib-projs\cecil\Mono.Security.Cryptography\*.cs" />
     <Compile Include="lib-projs\cecil\System.Security.Cryptography\*.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\BitAccess.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\BitSet.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\CvInfo.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\DataStream.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\DbiDbgHdr.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\DbiHeader.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\DbiModuleInfo.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\DbiSecCon.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\Interfaces.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\IntHashTable.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\MsfDirectory.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\PdbConstant.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\PdbDebugException.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\PdbException.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\PdbFile.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\PdbFileHeader.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\PdbFunction.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\PdbLine.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\PdbLines.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\PdbReader.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\PdbScope.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\PdbSlot.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\PdbSource.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\PdbTokenLine.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Microsoft.Cci.Pdb\SourceLocationProvider.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Mono.Cecil.Pdb\ISymUnmanagedDocumentWriter.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Mono.Cecil.Pdb\ISymUnmanagedWriter2.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Mono.Cecil.Pdb\ModuleMetadata.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Mono.Cecil.Pdb\PdbHelper.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Mono.Cecil.Pdb\PdbReader.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Mono.Cecil.Pdb\PdbWriter.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Mono.Cecil.Pdb\SymDocumentWriter.cs" />
-    <Compile Include="lib-projs\cecil\symbols\pdb\Mono.Cecil.Pdb\SymWriter.cs" />
-    <Compile Include="lib-projs\cecil\symbols\mdb\Mono.Cecil.Mdb\MdbReader.cs" />
-    <Compile Include="lib-projs\cecil\symbols\mdb\Mono.Cecil.Mdb\MdbWriter.cs" />
-    <Compile Include="lib-projs\cecil\symbols\mdb\Mono.CompilerServices.SymbolWriter\MonoSymbolFile.cs" />
-    <Compile Include="lib-projs\cecil\symbols\mdb\Mono.CompilerServices.SymbolWriter\MonoSymbolTable.cs" />
-    <Compile Include="lib-projs\cecil\symbols\mdb\Mono.CompilerServices.SymbolWriter\MonoSymbolWriter.cs" />
-    <Compile Include="lib-projs\cecil\symbols\mdb\Mono.CompilerServices.SymbolWriter\SourceMethodBuilder.cs" />
-    <Compile Include="lib-projs\cecil\symbols\mdb\Mono.CompilerServices.SymbolWriter\SymbolWriterImpl.cs" />
   </ItemGroup>
   <!--MonoMod-->
   <ItemGroup>
-    <Compile Include="lib-projs\MonoMod\MonoMod\QuickAndDirty.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModIgnore.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\MonoMod.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModRemove.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModReplace.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModConstructor.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModLinkTo.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\BlacklistItem.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModBlacklist.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModBlacklisted.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModEnumReplace.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModNoNew.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModOnPlatform.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModAdded.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModOriginal.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModOriginalName.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModder.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModExt.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Platform.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\PlatformHelper.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Program.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModIgnore.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModRemove.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModReplace.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModConstructor.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModLinkTo.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModBlacklisted.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModEnumReplace.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModInline.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="src\ConfigParser\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

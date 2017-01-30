@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Windows.Forms;
 using System.Reflection;
+using MonoMod;
 
 namespace ETGModInstaller {
     public static class ETGModder {
@@ -33,15 +34,19 @@ namespace ETGModInstaller {
 
         public static List<string> OverridePaths;
         public static List<string> Blacklist = new List<string>();
-        
+
         public static void Install(this InstallerWindow ins) {
+#if DEBUG
+            ins.Install_();
+#else
             try {
                 ins.Install_();
             } catch (Exception e) {
                 ins.LogLine(e.ToString());
             }
+#endif
         }
-        
+
         private static void Install_(this InstallerWindow ins) {
             ins
                 .Invoke(() => ins.LogBox.Visible = true)
@@ -54,8 +59,8 @@ namespace ETGModInstaller {
             if (ETGFinder.IsBinaryWrapped) {
                 ExePath = Path.Combine(Directory.GetParent(ExePath).FullName, ETGFinder.MainName);
             }
-            
-            Directory.SetCurrentDirectory(ins.MainMod.Dir.FullName);
+
+            Directory.SetCurrentDirectory(ins.MainModDir);
 
             if (AutoRun) {
                 string etg = ETGFinder.ProcessName;
@@ -76,7 +81,7 @@ namespace ETGModInstaller {
                     }
                 }
             }
-            
+
             ins.LogLine("Entering the Modgeon");
 
             //Clean the game from any previous installation
@@ -99,10 +104,10 @@ namespace ETGModInstaller {
                 mi = 0;
                 ins.LogLine("Mod #0: Base");
                 //Check if the revision online is newer
-                RepoHelper.RevisionFile = Path.Combine(ins.MainMod.Dir.FullName, "ModCache", "ETGMOD_REVISION.txt");
+                RepoHelper.RevisionFile = Path.Combine(ins.MainModDir, "ModCache", "ETGMOD_REVISION.txt");
                 int revisionOnline = RepoHelper.RevisionOnline;
                 if (RepoHelper.Revision < revisionOnline) {
-                    string cachedPath = Path.Combine(ins.MainMod.Dir.FullName, "ModCache", "ETGMOD.zip");
+                    string cachedPath = Path.Combine(ins.MainModDir, "ModCache", "ETGMOD.zip");
                     if (File.Exists(cachedPath)) {
                         File.Delete(cachedPath);
                     }
@@ -113,10 +118,10 @@ namespace ETGModInstaller {
                 }
                 RepoHelper.Revision = revisionOnline;
             }
-            
+
 
             int[] selectedIndices = null;
-            ins.Invoke(delegate() {
+            ins.Invoke(delegate () {
                 int[] _selectedIndices = new int[ins.APIModsList.SelectedIndices.Count];
                 ins.APIModsList.SelectedIndices.CopyTo(_selectedIndices, 0);
                 selectedIndices = _selectedIndices;
@@ -156,18 +161,18 @@ namespace ETGModInstaller {
                     }
                 } else if (path.ToLower().EndsWith(".mm.dll")) {
                     ins.Log("Mod #").Log((++mi).ToString()).Log(": DLL: ").LogLine(path);
-                    File.Copy(path, Path.Combine(ins.MainMod.Dir.FullName, Path.GetFileName(path)), true);
+                    File.Copy(path, Path.Combine(ins.MainModDir, Path.GetFileName(path)), true);
                     string pdb = Path.ChangeExtension(path, "pdb");
                     string mdb = path + ".mdb";
                     if (File.Exists(pdb)) {
-                        File.Copy(pdb, Path.Combine(ins.MainMod.Dir.FullName, Path.GetFileName(pdb)), true);
+                        File.Copy(pdb, Path.Combine(ins.MainModDir, Path.GetFileName(pdb)), true);
                     } else if (File.Exists(mdb)) {
-                        File.Copy(mdb, Path.Combine(ins.MainMod.Dir.FullName, Path.GetFileName(mdb)), true);
+                        File.Copy(mdb, Path.Combine(ins.MainModDir, Path.GetFileName(mdb)), true);
                     }
                 } else {
                     ins.Log("Mod #").Log((++mi).ToString()).Log(": Folder: ").LogLine(path);
 
-                    string pathGame = ins.MainMod.Dir.FullName;
+                    string pathGame = ins.MainModDir;
                     string[] files = Directory.GetFiles(path);
                     ins.InitProgress("Copying ETGMod", files.Length);
                     for (int i = 0; i < files.Length; i++) {
@@ -184,13 +189,13 @@ namespace ETGModInstaller {
                     ins.EndProgress("Copying ETGMod complete.");
                 }
             }
-            
+
             if (Blacklist.Count != 0) {
                 ins.LogLine();
                 ins.Log(Blacklist.Count.ToString()).LogLine(" mods on the blacklist - removing them!");
                 for (int i = 0; i < Blacklist.Count; i++) {
                     string blacklisted = Blacklist[i];
-                    string pathGame = ins.MainMod.Dir.FullName;
+                    string pathGame = ins.MainModDir;
                     string blacklistedPath = Path.Combine(pathGame, blacklisted);
                     ins.Log(blacklisted).Log(" blacklisted - ");
                     if (!File.Exists(blacklistedPath)) {
@@ -203,7 +208,7 @@ namespace ETGModInstaller {
                 ins.LogLine();
             }
 
-            LogPath = Path.Combine(ins.MainMod.Dir.FullName, "ETGModInstallLog.txt");
+            LogPath = Path.Combine(ins.MainModDir, "ETGModInstallLog.txt");
             if (File.Exists(LogPath)) {
                 File.Delete(LogPath);
             }
@@ -233,7 +238,7 @@ namespace ETGModInstaller {
                 OnInstalled?.Invoke(false);
                 return;
             }
-            
+
             ins.EndProgress("Modding complete.");
             ins.LogLine("Back with the coffee? We're done! Look at the top-right!");
             ins.LogLine("You should see [just installed]. Feel free to start EtG.");
@@ -251,26 +256,26 @@ namespace ETGModInstaller {
             }
             OnInstalled?.Invoke(true);
         }
-        
+
         public static bool Backup(this InstallerWindow ins, string file) {
-            string pathGame = ins.MainMod.Dir.FullName;
+            string pathGame = ins.MainModDir;
             string pathBackup = Path.Combine(pathGame, "ModBackup");
             if (!Directory.Exists(pathBackup)) {
                 Directory.CreateDirectory(pathBackup);
             }
-            
+
             string origPath = Path.Combine(pathGame, file);
             if (!File.Exists(origPath)) {
                 return false;
             }
-            
+
             ins.Log("Backing up: ").LogLine(file);
-            File.Copy(origPath, Path.Combine(pathBackup, file), true);
+            File.Copy(origPath, Path.Combine(pathBackup, file), true);
             return true;
         }
 
         public static bool BackupETG(this InstallerWindow ins) {
-            string pathGame = ins.MainMod.Dir.FullName;
+            string pathGame = ins.MainModDir;
             string pathBackup = Path.Combine(pathGame, "ModBackup");
             if (!Directory.Exists(pathBackup)) {
                 Directory.CreateDirectory(pathBackup);
@@ -293,7 +298,7 @@ namespace ETGModInstaller {
             if (ins.MainMod == null) {
                 return;
             }
-			ins.MainMod.Dispose();
+            ins.MainMod.Dispose();
 
             // Uninstall can be invoked without the installer running
             ins.Invoke(() => ExePath = ins.ExePathBox.Text).Wait();
@@ -301,7 +306,7 @@ namespace ETGModInstaller {
                 ExePath = Path.Combine(Directory.GetParent(ExePath).FullName, ETGFinder.MainName);
             }
 
-            string pathGame = ins.MainMod.Dir.FullName;
+            string pathGame = ins.MainModDir;
             string pathBackup = Path.Combine(pathGame, "ModBackup");
             if (!Directory.Exists(pathBackup)) {
                 return;
@@ -349,26 +354,28 @@ namespace ETGModInstaller {
 
             ins.LogLine("Reloading Assembly-CSharp.dll");
             ins.SetProgress("Reloading Assembly-CSharp.dll", files.Length);
-            ins.MainMod = new MonoMod.MonoMod(ins.MainMod.In);
+            ins.MainMod = new MonoModder() {
+                Input = File.OpenRead(ins.MainModIn)
+            };
 #if DEBUG
             if (LogPath == null) { ins.MainMod.Read(true); } else
-            using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
-                using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
-                    ins.MainMod.Logger = (string s) => ins.OnActivity();
-                    ins.MainMod.Logger += (string s) => streamWriter.WriteLine(s);
-                    ins.MainMod.SkipOptimization = true;
-                    MonoMod.MonoModSymbolReader.MDBDEBUG = true;
+                using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
+                    using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
+                        ins.MainMod.Logger = (string s) => ins.OnActivity();
+                        ins.MainMod.Logger += (string s) => streamWriter.WriteLine(s);
+                        ins.MainMod.SkipOptimization = true;
+                        // MonoMod.MonoModSymbolReader.MDBDEBUG = true;
 #endif
-                    ins.MainMod.Read(true);
+                        ins.MainMod.Read(true);
 #if DEBUG
-                    Mono.Cecil.TypeDefinition etgMod = ins.MainMod.Module.GetType("ETGMod");
-                    if (etgMod != null) {
-                        for (int i = 0; i < etgMod.Methods.Count; i++) {
-                            Mono.Cecil.Cil.MethodBody body = etgMod.Methods[i].Body;
+                        Mono.Cecil.TypeDefinition etgMod = ins.MainMod.Module.GetType("ETGMod");
+                        if (etgMod != null) {
+                            for (int i = 0; i < etgMod.Methods.Count; i++) {
+                                Mono.Cecil.Cil.MethodBody body = etgMod.Methods[i].Body;
+                            }
                         }
                     }
                 }
-            }
             ins.MainMod.Logger = null;
 #endif
             ins.EndProgress("Uninstalling complete.");
@@ -379,7 +386,7 @@ namespace ETGModInstaller {
                 return;
             }
 
-            string pathGame = ins.MainMod.Dir.FullName;
+            string pathGame = ins.MainModDir;
             string pathCache = Path.Combine(pathGame, "ModBackup");
             if (!Directory.Exists(pathCache)) {
                 return;
@@ -398,7 +405,7 @@ namespace ETGModInstaller {
 
             ins.EndProgress("Clearing backup complete.");
         }
-        
+
         public static byte[] Download(this InstallerWindow ins, string url) {
             if (IsOffline) {
                 return null;
@@ -408,31 +415,31 @@ namespace ETGModInstaller {
 
             ins.Log("Downloading ").Log(url).LogLine("...");
             ins.InitProgress("Starting download", 1);
-            
+
             DateTime timeStart = DateTime.Now;
             using (WebClient wc = new WebClient()) {
                 using (Stream s = wc.OpenRead(url)) {
                     long sLength;
-					if (s.CanSeek) {
-						//Mono
-						sLength = s.Length;
+                    if (s.CanSeek) {
+                        //Mono
+                        sLength = s.Length;
                     } else {
-						//.NET
-						sLength = getLength(url);
+                        //.NET
+                        sLength = getLength(url);
                     }
-					data = new byte[sLength];
+                    data = new byte[sLength];
 
-					long progressSize = sLength;
+                    long progressSize = sLength;
                     int progressScale = 1;
                     while (progressSize > int.MaxValue) {
                         progressScale *= 10;
-						progressSize = sLength / progressScale;
+                        progressSize = sLength / progressScale;
                     }
-                    
+
                     ins.InitProgress("Downloading", (int) progressSize);
-                    
+
                     DateTime timeLast = timeStart;
-                    
+
                     //if downloading to another stream, use CopyTo
                     int read;
                     int readForSpeed = 0;
@@ -440,73 +447,73 @@ namespace ETGModInstaller {
                     int speed = 0;
                     TimeSpan td;
                     while (pos < data.Length) {
-                        read = s.Read(data, pos, Math.Min(2048, data.Length - pos));
+                        read = s.Read(data, pos, Math.Min(2048, data.Length - pos));
                         pos += read;
                         readForSpeed += read;
-                        
+
                         td = (DateTime.Now - timeLast);
                         if (td.TotalMilliseconds > 100) {
                             speed = (int) ((readForSpeed / 1024D) / (double) td.TotalSeconds);
                             readForSpeed = 0;
                             timeLast = DateTime.Now;
                         }
-                        
+
                         ins.SetProgress(
-                            "Downloading - "  +
+                            "Downloading - " +
                                 (int) (Math.Round(100D * ((double) (pos / progressScale) / (double) progressSize))) + "%, " +
                                 speed + " KiB/s",
                             (int) (pos / progressScale)
                         );
-                        
+
                     }
-                    
+
                 }
             }
-            
+
             ins.EndProgress("Download complete");
-            
+
             string logSize = (data.Length / 1024D).ToString(CultureInfo.InvariantCulture);
             logSize = logSize.Substring(0, Math.Min(logSize.IndexOf('.') + 3, logSize.Length));
             string logTime = (DateTime.Now - timeStart).TotalSeconds.ToString(CultureInfo.InvariantCulture);
             logTime = logTime.Substring(0, Math.Min(logTime.IndexOf('.') + 3, logTime.Length));
             ins.Log("Download complete, ").Log(logSize).Log(" KiB in ").Log(logTime).LogLine(" s.");
-            
+
             return data;
         }
-        
+
         public static byte[] DownloadCached(this InstallerWindow ins, string url, string cached) {
             byte[] data = ins.ReadDataFromCache(cached);
             if (data != null) {
                 return data;
             }
-            
+
             data = ins.Download(url);
             if (data == null) {
                 return null;
             }
-            
+
             ins.WriteDataToCache(cached, data);
             return data;
         }
-        
+
         public static byte[] ReadDataFromCache(this InstallerWindow ins, string cached) {
-            string pathGame = ins.MainMod.Dir.FullName;
+            string pathGame = ins.MainModDir;
             string pathCache = Path.Combine(pathGame, "ModCache");
             if (!Directory.Exists(pathCache)) {
                 Directory.CreateDirectory(pathCache);
             }
-            
+
             string cachedPath = Path.Combine(pathCache, cached);
             if (!File.Exists(cachedPath)) {
                 return null;
             }
-            
+
             ins.Log("Reading from cache: ").LogLine(cached);
             return File.ReadAllBytes(cachedPath);
         }
-        
+
         public static void WriteDataToCache(this InstallerWindow ins, string cached, byte[] data) {
-            string pathGame = ins.MainMod.Dir.FullName;
+            string pathGame = ins.MainModDir;
             string pathCache = Path.Combine(pathGame, "ModCache");
             if (!Directory.Exists(pathCache)) {
                 Directory.CreateDirectory(pathCache);
@@ -516,17 +523,17 @@ namespace ETGModInstaller {
             if (File.Exists(cachedPath)) {
                 File.Delete(cachedPath);
             }
-            
+
             ins.Log("Writing to cache: ").LogLine(cached);
             File.WriteAllBytes(cachedPath, data);
         }
-        
+
         public static void ClearCache(this InstallerWindow ins) {
             if (ins.MainMod == null) {
                 return;
             }
 
-            string pathGame = ins.MainMod.Dir.FullName;
+            string pathGame = ins.MainModDir;
             string pathCache = Path.Combine(pathGame, "ModCache");
             if (!Directory.Exists(pathCache)) {
                 return;
@@ -546,16 +553,16 @@ namespace ETGModInstaller {
             ins.EndProgress("Clearing cache complete.");
         }
 
-		private static long getLength(string url) {
-			HttpWebRequest request = (HttpWebRequest) WebRequest.Create(url);
-			request.UserAgent = "ETGMod Installer";
-			request.Method = "HEAD";
+        private static long getLength(string url) {
+            HttpWebRequest request = (HttpWebRequest) WebRequest.Create(url);
+            request.UserAgent = "ETGMod Installer";
+            request.Method = "HEAD";
 
-			using (HttpWebResponse response = (HttpWebResponse) request.GetResponse()) {
-				return response.ContentLength;
-			}
-		}
-        
+            using (HttpWebResponse response = (HttpWebResponse) request.GetResponse()) {
+                return response.ContentLength;
+            }
+        }
+
         public static bool UnzipMod(this InstallerWindow ins, byte[] data) {
             if (data == null) {
                 return false;
@@ -564,7 +571,7 @@ namespace ETGModInstaller {
                 return ins.UnzipMod(ms);
             }
         }
-        
+
         public static bool UnzipMod(this InstallerWindow ins, Stream zs) {
             string platform = "";
             if (ETGFinder.Platform.HasFlag(ETGPlatform.Windows)) {
@@ -586,11 +593,11 @@ namespace ETGModInstaller {
 
             fallback += "/";
             prefix += "/";
-            
-            string pathGame = ins.MainMod.Dir.FullName;
-            
+
+            string pathGame = ins.MainModDir;
+
             ins.Log("Checking for ").Log(prefix).LogLine("...");
-            
+
             using (ZipArchive zip = new ZipArchive(zs, ZipArchiveMode.Read)) {
                 int prefixCount = 0;
                 int fallbackCount = 0;
@@ -600,10 +607,10 @@ namespace ETGModInstaller {
                     ins.SetProgress(i);
                     ZipArchiveEntry entry = zip.Entries[i];
                     ins.Log("Entry: ").Log(entry.FullName).Log(": ").Log(entry.Length.ToString()).LogLine(" bytes");
-                    
+
                     if (entry.FullName == "InstallerVersion.txt") {
                         ins.LogLine("Found version file.");
-                        
+
                         using (Stream s = entry.Open()) {
                             using (StreamReader sr = new StreamReader(s)) {
                                 Version minv = new Version(sr.ReadLine().Trim());
@@ -619,10 +626,10 @@ namespace ETGModInstaller {
                                 }
                             }
                         }
-                        
+
                         continue;
                     }
-                    
+
                     string entryName = entry.FullName;
                     if (entry.FullName.StartsWith(prefix)) {
                         prefixCount++;
@@ -632,7 +639,7 @@ namespace ETGModInstaller {
                         noneCount++;
                     }
                 }
-                
+
                 if (0 < prefixCount) {
                     ins.Log(prefix).LogLine(" found.");
                     ins.InitProgress("Extracting ZIP", prefixCount);
@@ -645,7 +652,7 @@ namespace ETGModInstaller {
                     prefix = "";
                     ins.InitProgress("Extracting ZIP", noneCount);
                 }
-                
+
                 int extracted = 0;
                 for (int i = 0; i < zip.Entries.Count; i++) {
                     ZipArchiveEntry entry = zip.Entries[i];
@@ -653,7 +660,7 @@ namespace ETGModInstaller {
                         continue;
                     }
                     ins.SetProgress(++extracted);
-                    
+
                     string entryName = entry.FullName.Substring(prefix.Length);
 
                     if (entryName.StartsWith("LIBS/")) {
@@ -675,18 +682,22 @@ namespace ETGModInstaller {
                     }
                 }
                 ins.EndProgress("Extracted ZIP.");
-                
+
             }
-            
+
             return true;
         }
 
         public static void PatchExe(this InstallerWindow ins) {
-            using (FileStream fo = File.OpenWrite(ExePath)) { using (FileStream fi = File.OpenRead(ExeBackupPath)) {
-                using (BinaryWriter bo = new BinaryWriter(fo)) { using (BinaryReader bi = new BinaryReader(fi)) {
-                    ins.PatchExe(bi, bo);
-                } }
-            } }
+            using (FileStream fo = File.OpenWrite(ExePath)) {
+                using (FileStream fi = File.OpenRead(ExeBackupPath)) {
+                    using (BinaryWriter bo = new BinaryWriter(fo)) {
+                        using (BinaryReader bi = new BinaryReader(fi)) {
+                            ins.PatchExe(bi, bo);
+                        }
+                    }
+                }
+            }
 
             if (ETGFinder.Platform.HasFlag(ETGPlatform.Windows)) {
                 // Windows doesn't have an executable bit
@@ -706,29 +717,40 @@ namespace ETGModInstaller {
         }
 
         public static bool Mod(this InstallerWindow ins, string file) {
-            MonoMod.MonoMod monomod = new MonoMod.MonoMod(Path.Combine(ins.MainMod.Dir.FullName, file));
+            string inPath = Path.Combine(ins.MainModDir, file);
+            string outPath = Path.Combine(ins.MainModDir, file + ".tmp.dll");
+            MonoModder monomod = new MonoModder() {
+                Input = File.OpenRead(inPath),
+                Output = File.OpenWrite(outPath)
+            };
 #if DEBUG
-            ins.MainMod.SkipOptimization = true;
+            monomod.SkipOptimization = true;
 #endif
-            monomod.Out = new FileInfo(monomod.In.FullName + ".tmp.dll");
             using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
                 using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
                     monomod.Logger = (string s) => ins.OnActivity();
                     monomod.Logger += (string s) => streamWriter.WriteLine(s);
                     // Unity wants .mdbs
-                    monomod.WriterParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider();
-                    string db = Path.ChangeExtension(monomod.In.FullName, "pdb");
-                    string dbTmp = Path.ChangeExtension(monomod.Out.FullName, "pdb");
+                    // monomod.WriterParameters.SymbolWriterProvider = new Mono.Cecil.Mdb.MdbWriterProvider();
+                    string db = Path.ChangeExtension(inPath, "pdb");
+                    string dbTmp = Path.ChangeExtension(outPath, "pdb");
                     if (!File.Exists(db)) {
-                        db = monomod.In.FullName + ".mdb";
-                        dbTmp = monomod.Out.FullName + ".mdb";
+                        db = inPath + ".mdb";
+                        dbTmp = outPath + ".mdb";
                     }
+#if !DEBUG
                     RETRY:
                     try {
-                        monomod.AutoPatch(true, true);
-                        monomod.Dispose();
-                        File.Delete(monomod.In.FullName);
-                        File.Move(monomod.Out.FullName, monomod.In.FullName);
+#endif
+                        monomod.Read(false); // Read main module first
+                        monomod.ReadMod(Directory.GetParent(inPath).FullName); // ... then mods
+                        monomod.Read(true); // ... then all dependencies
+                        monomod.AutoPatch(); // Patch,
+                        monomod.Write(); // and write.
+                        monomod.Dispose(); // Finally, dispose, because file access happens now.
+
+                        File.Delete(inPath);
+                        File.Move(outPath, inPath);
                         if (File.Exists(db)) {
                             File.Delete(db);
                         }
@@ -736,6 +758,7 @@ namespace ETGModInstaller {
                             File.Move(dbTmp, db);
                         }
                         return true;
+#if !DEBUG
                     } catch (ArgumentException e) {
                         monomod.Dispose();
                         if (File.Exists(db)) {
@@ -746,12 +769,15 @@ namespace ETGModInstaller {
                             goto RETRY;
                         }
                         ins.LogLine(e.ToString());
+                        throw;
                         return false;
                     } catch (Exception e) {
                         monomod.Dispose();
                         ins.LogLine(e.ToString());
+                        throw;
                         return false;
                     }
+#endif
                 }
             }
         }
@@ -762,7 +788,7 @@ namespace ETGModInstaller {
                     return;
                 }
 
-                path = ins.MainMod.Dir.FullName;
+                path = ins.MainModDir;
                 ins.LogLine("Clearing symbols...");
             }
 
@@ -792,7 +818,7 @@ namespace ETGModInstaller {
 
             Process reboot = new Process();
             reboot.StartInfo.FileName = Assembly.GetEntryAssembly().Location;
-            reboot.StartInfo.Arguments = "--clearsymbols \"" + ins.MainMod.Dir.FullName + "\"";
+            reboot.StartInfo.Arguments = "--clearsymbols \"" + ins.MainModDir + "\"";
             reboot.StartInfo.CreateNoWindow = true;
             reboot.StartInfo.UseShellExecute = true;
 

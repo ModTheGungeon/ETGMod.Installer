@@ -16,6 +16,8 @@ using ContentAlignment = System.Drawing.ContentAlignment;
 using System.Diagnostics;
 using System.Drawing.Imaging;
 
+using MonoMod;
+
 namespace ETGModInstaller {
     public class InstallerWindow : Form {
 
@@ -32,7 +34,7 @@ namespace ETGModInstaller {
 
         public OpenFileDialog OpenExeDialog;
         public OpenFileDialog OpenModDialog;
-        
+
         public RichTextBox LogBox;
 
         public TextBox ExePathBox;
@@ -51,15 +53,17 @@ namespace ETGModInstaller {
         public Button InstallButton;
         public Button UninstallButton;
         public CustomProgress Progress;
-        
+
         public int AddIndex = 0;
         public int AddOffset = 0;
-        
+
         public List<Tuple<string, string>> APIMods;
-        
+
         public string ModVersion;
-        public MonoMod.MonoMod MainMod;
-        
+        public MonoModder MainMod;
+        public string MainModDir;
+        public string MainModIn;
+
         public InstallerWindow() {
             Instance = this;
             HandleCreated += onHandleCreated;
@@ -120,7 +124,7 @@ namespace ETGModInstaller {
 
             AllowDrop = true;
             DragDrop += onDragDrop;
-            DragEnter += delegate(object sender, DragEventArgs e) {
+            DragEnter += delegate (object sender, DragEventArgs e) {
                 if (e.Data.GetDataPresent(DataFormats.FileDrop) && VersionTabs.Enabled) {
                     e.Effect = DragDropEffects.Copy;
                     VersionTabs.SelectedIndex = 2;
@@ -143,7 +147,7 @@ namespace ETGModInstaller {
                 BackColor = Color.Transparent,
                 ForeColor = Color.FromArgb(127, 0, 0, 0)
             });
-            
+
             Controls.Add(LogBox = new RichTextBox() {
                 Bounds = new Rectangle(0, 0, 448, 358),
                 Font = GlobalFont,
@@ -173,7 +177,7 @@ namespace ETGModInstaller {
                 BackColor = Color.Transparent,
                 ForeColor = Color.Black
             });
-            
+
             Add(ExePathBox = new TextBox() {
                 Font = GlobalFont,
                 ReadOnly = true
@@ -187,7 +191,7 @@ namespace ETGModInstaller {
             });
             ExePathButton.Click += (object senderClick, EventArgs eClick) => OpenExeDialog.ShowDialog(this);
             AddOffset += 2;
-            
+
             Add(ExeStatusLabel = new Label() {
                 Font = GlobalFont,
                 TextAlign = ContentAlignment.MiddleCenter,
@@ -195,9 +199,9 @@ namespace ETGModInstaller {
                 BackColor = Color.FromArgb(127, 255, 63, 63),
                 ForeColor = Color.Black
             });
-            
+
             AddOffset += 2;
-            
+
             Add(new Label() {
                 Font = GlobalFont,
                 TextAlign = ContentAlignment.MiddleCenter,
@@ -205,7 +209,7 @@ namespace ETGModInstaller {
                 BackColor = Color.Transparent,
                 ForeColor = Color.Black
             });
-            
+
             Controls.Add(InstallButton = new Button() {
                 Bounds = new Rectangle(448, 313 - 1 - ExePathButton.Size.Height, 312 - 32, ExePathButton.Size.Height),
                 Font = GlobalFont,
@@ -220,13 +224,13 @@ namespace ETGModInstaller {
                 Image = LoadAsset<Image>("icons.uninstall"),
                 ImageAlign = ContentAlignment.MiddleCenter
             });
-            UninstallButton.Click += (object senderClick, EventArgs eClick) => Task.Run(delegate() {
+            UninstallButton.Click += (object senderClick, EventArgs eClick) => Task.Run(delegate () {
                 this.Uninstall();
                 this.ClearCache();
                 this.ExeSelected(ExePathBox.Text, " [just uninstalled]");
                 this.SetMainEnabled(true);
             });
-            
+
             Controls.Add(VersionTabs = new TabControl() {
                 Bounds = new Rectangle(448, 4 + 26 * AddIndex + AddOffset, 312, InstallButton.Location.Y - (4 + 26 * AddIndex + AddOffset)),
                 Font = GlobalFont,
@@ -236,7 +240,7 @@ namespace ETGModInstaller {
             if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
                 VersionTabs.BackColor = Color.White;
                 // Mono's WinForms implementation on macOS just sucks.
-                VersionTabs.SelectedIndexChanged += delegate(object sender, EventArgs e) {
+                VersionTabs.SelectedIndexChanged += delegate (object sender, EventArgs e) {
                     for (int i = 0; i < VersionTabs.TabPages.Count; i++) {
                         if (i == VersionTabs.SelectedIndex) {
                             VersionTabs.TabPages[i].ShowDeep();
@@ -247,7 +251,7 @@ namespace ETGModInstaller {
                     RefreshManualPanel();
                 };
             }
-            
+
             VersionTabs.TabPages.Add(new TabPage("API Mods"));
             VersionTabs.TabPages[0].Controls.Add(APIModsList = new ListBox() {
                 Font = GlobalFont,
@@ -303,7 +307,7 @@ namespace ETGModInstaller {
             AdvancedBinaryWrappedCheckbox.CheckedChanged += delegate (object senderCheck, EventArgs eCheck) {
                 ETGFinder.IsBinaryWrapped = AdvancedBinaryWrappedCheckbox.Checked;
             };
-            
+
             RefreshManualPanel();
         }
 
@@ -375,7 +379,7 @@ namespace ETGModInstaller {
             AdvancedBinaryWrappedCheckbox.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
         }
         public InstallerWindow SetMainEnabled(bool enabled) {
-            return Invoke(delegate() {
+            return Invoke(delegate () {
                 ExePathBox.Enabled = enabled;
                 ExePathButton.Enabled = enabled;
                 VersionTabs.Enabled = enabled;
@@ -392,19 +396,19 @@ namespace ETGModInstaller {
             }
             downloadingModsList = true;
 
-            Invoke(delegate() {
+            Invoke(delegate () {
                 APIModsList.BeginUpdate();
                 APIModsList.Items.Add("Downloading list...");
                 APIModsList.EndUpdate();
             });
-            
+
             try {
                 APIMods = RepoHelper.GetAPIMods();
             } catch (Exception e) {
                 APIMods = null;
                 LogLine("Something went horribly wrong:");
                 LogLine(e.ToString());
-                Invoke(delegate() {
+                Invoke(delegate () {
                     APIModsList.BeginUpdate();
                     APIModsList.Items.Clear();
                     APIModsList.Items.Add("Something went wrong - see the log.");
@@ -412,8 +416,8 @@ namespace ETGModInstaller {
                 });
                 return;
             }
-            
-            Invoke(delegate() {
+
+            Invoke(delegate () {
                 APIModsList.BeginUpdate();
                 APIModsList.Items.Clear();
                 for (int i = 0; i < APIMods.Count; i++) {
@@ -427,19 +431,19 @@ namespace ETGModInstaller {
                     APIModsList.SelectionMode = SelectionMode.MultiExtended;
                     APIModsList.SelectedIndices.Add(0);
                 }
- 
+
                 APIModsList.EndUpdate();
             });
 
             downloadingModsList = false;
         }
-        
+
         public void Add(Control c) {
             c.Bounds = new Rectangle(448, 4 + 26 * AddIndex + AddOffset, 312, 24);
             Controls.Add(c);
             AddIndex++;
         }
-        
+
         public InstallerWindow Invoke(Action d) {
             if (GUIThread == null) {
                 delayed.Add(d);
@@ -467,9 +471,9 @@ namespace ETGModInstaller {
                 Thread.Sleep(sleep);
             }
         }
-        
+
         public InstallerWindow InitProgress(string str, int max) {
-            return Invoke(delegate() {
+            return Invoke(delegate () {
                 Progress.Value = 0;
                 Progress.Maximum = max;
                 Progress.Text = str;
@@ -478,14 +482,14 @@ namespace ETGModInstaller {
             });
         }
         public InstallerWindow SetProgress(int val) {
-            return Invoke(delegate() {
+            return Invoke(delegate () {
                 Progress.Value = val;
                 Progress.Invalidate();
                 OnActivity(ActivityOnProgress);
             });
         }
         public InstallerWindow SetProgress(string str, int val) {
-            return Invoke(delegate() {
+            return Invoke(delegate () {
                 Progress.Value = val;
                 Progress.Text = str;
                 Progress.Invalidate();
@@ -493,21 +497,21 @@ namespace ETGModInstaller {
             });
         }
         public InstallerWindow EndProgress() {
-            return Invoke(delegate() {
+            return Invoke(delegate () {
                 Progress.Value = Progress.Maximum;
                 Progress.Invalidate();
                 OnActivity(ActivityOnProgress);
             });
         }
         public InstallerWindow EndProgress(string str) {
-            return Invoke(delegate() {
+            return Invoke(delegate () {
                 Progress.Value = Progress.Maximum;
                 Progress.Text = str;
                 Progress.Invalidate();
                 OnActivity(ActivityOnProgress);
             });
         }
-        
+
         private List<string> logScheduled = new List<string>();
         private Task logUpdateTask;
         public InstallerWindow Log(string s) {
@@ -533,7 +537,7 @@ namespace ETGModInstaller {
                 added += logScheduled[0];
                 logScheduled.RemoveAt(0);
             }
-            Invoke(delegate() {
+            Invoke(delegate () {
                 LogBox.Visible = true;
                 LogBox.Text += added;
                 LogBox.SelectionStart = LogBox.Text.Length;
@@ -543,7 +547,7 @@ namespace ETGModInstaller {
             });
             logUpdateTask = null;
         }
-        
+
         private void onHandleCreated(object sender, EventArgs e) {
             HandleCreated -= onHandleCreated;
             GUIThread = Thread.CurrentThread;
@@ -721,7 +725,8 @@ namespace ETGModInstaller {
                     s.Read(data, 0, (int) s.Length);
                 }
                 //yeeey, unsafe!
-                unsafe {
+                unsafe
+                {
                     fixed (byte* pData = data) {
                         pfc.AddMemoryFont((IntPtr) pData, data.Length);
                     }

@@ -12,7 +12,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Mono.Collections.Generic;
 using Mono.Cecil.Cil;
-using Mono.CompilerServices.SymbolWriter;
+using MonoMod;
 
 namespace ETGModInstaller {
     public static class ETGFinder {
@@ -35,7 +35,7 @@ namespace ETGModInstaller {
                     return "EtG_OSX";
                 }
                 if (Platform.HasFlag(ETGPlatform.Linux)) {
-					return IntPtr.Size == 4 /*(32 bit)*/ ? "EtG.x86" : "EtG.x86_64";
+                    return IntPtr.Size == 4 /*(32 bit)*/ ? "EtG.x86" : "EtG.x86_64";
                 }
 
                 return null;
@@ -66,7 +66,7 @@ namespace ETGModInstaller {
                 if (InstallerWindow.Instance.MainMod == null) {
                     return null;
                 }
-                var str = File.ReadAllText(Path.Combine(InstallerWindow.Instance.MainMod.Dir.Parent.FullName, "StreamingAssets", "version.txt")).Trim();
+                var str = File.ReadAllText(Path.Combine(Directory.GetParent(InstallerWindow.Instance.MainModDir).FullName, "StreamingAssets", "version.txt")).Trim();
                 return Regex.Split(str, "[\r\n]+")[0];
             }
         }
@@ -94,16 +94,20 @@ namespace ETGModInstaller {
                                 Console.WriteLine("Steam found at " + path);
                                 p.Dispose();
                             }
+
+                            if (path.Contains("cef")) {
+                                path = Directory.GetParent(path).Parent.FullName;
+                            }
                         } catch (Exception) {
                             //probably the service acting up, a process quitting or bitness mismatch
                             p.Dispose();
                         }
                     }
                 }
-            
+
                 if (path == null) {
                     Console.WriteLine("Found no Steam executable.");
-                
+
                     if (Platform.HasFlag(ETGPlatform.Linux)) {
                         path = Path.Combine(Environment.GetEnvironmentVariable("HOME"), ".local/share/Steam");
                         if (!Directory.Exists(path)) {
@@ -125,29 +129,29 @@ namespace ETGModInstaller {
                         return null;
                     }
                 }
-            
-            
+
+
                 if (Platform.HasFlag(ETGPlatform.Windows)) {
                     //I think we're running in Windows right now...
                     path = Directory.GetParent(path).Parent.FullName; //PF/Steam[/bin/steam.exe]
                     Console.WriteLine("Windows Steam main dir " + path);
-                
+
                 } else if (Platform.HasFlag(ETGPlatform.MacOS)) {
                     //macOS is so weird...
                     Console.WriteLine("MacOS Steam main dir " + path);
                     if (!Directory.Exists(path)) {
                         return null;
                     }
-                
+
                 } else if (Platform.HasFlag(ETGPlatform.Linux)) {
                     //Are you sure you want to forcibly remove everything from your home directory?
                     path = Directory.GetParent(path).Parent.FullName; //~/.local/share/Steam[/ubuntuX_Y/steam]
                     Console.WriteLine("Linux Steam main dir " + path);
-                
+
                 } else {
                     return null;
                 }
-            
+
                 //PF/Steam/SteamApps //~/.local/share/Steam/SteamApps
                 if (Directory.Exists(Path.Combine(path, "SteamApps"))) {
                     path = Path.Combine(path, "SteamApps");
@@ -155,27 +159,27 @@ namespace ETGModInstaller {
                     path = Path.Combine(path, "steamapps");
                 }
                 path = Path.Combine(path, "common"); //SA/common
-            
+
                 path = Path.Combine(path, "Enter the Gungeon");
                 if (Platform.HasFlag(ETGPlatform.MacOS)) {
                     path = Path.Combine(path, "EtG_OSX.app", "Contents", "MacOS");
                 }
                 path = Path.Combine(path, ETGFinder.MainName);
-            
+
                 if (!File.Exists(path)) {
                     Console.WriteLine("EtG not found at " + path + " (at least Steam found)");
                     return null;
                 }
-            
+
                 Console.WriteLine("EtG found at " + path);
-            
+
                 return path;
             }
         }
 
         public static void FindETG() {
             string path;
-            
+
             if ((path = ETGFinder.SteamPath) != null) {
                 try {
                     InstallerWindow.Instance.ExeSelected(path, " [auto - Steam]");
@@ -208,7 +212,7 @@ namespace ETGModInstaller {
             }
 
             string origPath = path;
-            ins.Invoke(delegate() {
+            ins.Invoke(delegate () {
                 ins.InstallButton.Enabled = false;
                 ins.ExePathBox.Text = origPath;
                 ins.ExeStatusLabel.Text = "EtG [checking version]";
@@ -218,7 +222,7 @@ namespace ETGModInstaller {
                 ins.ExeStatusLabel.BackColor = Color.FromArgb(127, 255, 255, 63);
             });
 
-            if (path != null && (ins.MainMod == null || ins.MainMod.In.FullName != path)) {
+            if (path != null && (ins.MainMod == null || ins.MainModIn != path)) {
                 if (!Platform.HasFlag(ETGPlatform.MacOS)) {
                     path = Path.Combine(Directory.GetParent(path).FullName, "EtG_Data", "Managed", "Assembly-CSharp.dll");
                 } else {
@@ -242,10 +246,14 @@ namespace ETGModInstaller {
                 });
                 return;
             }
-            ins.MainMod = new MonoMod.MonoMod(path);
+            ins.MainMod = new MonoModder() {
+                Input = File.OpenRead(ins.MainModIn = path)
+                // Output set when actually patching
+            };
+            ins.MainModDir = Directory.GetParent(ins.MainModIn).FullName;
 #if DEBUG
             ins.MainMod.SkipOptimization = true;
-            MonoMod.MonoModSymbolReader.MDBDEBUG = true;
+            // MonoMod.MonoModSymbolReader.MDBDEBUG = true;
 #endif
 
             //We want to read the assembly now already. Writing is also handled manually.
@@ -255,22 +263,22 @@ namespace ETGModInstaller {
                 //this is not the assembly we need...
                 ins.ExeSelected(null);
                 return;
-            } catch (MonoSymbolFileException) {
+            } /* catch (MonoSymbolFileException) {
                 // Mono.Cecil keeps the file handle for itself; We need to restart here.
                 ins.MainMod.Dispose();
                 ins.RestartAndClearSymbols();
                 return;
-            } catch (Exception e) {
+            }*/ catch (Exception e) {
                 //Something went wrong.
                 ins.Log("Something went horribly wrong after you've selected ").LogLine(MainName);
-                ins.LogLine("Blame 0x0ade and send him this log ASAP!");
+                ins.LogLine("Blame Zatherz and send him this log ASAP!");
                 ins.Log("PATH: ").LogLine(path);
-                ins.Log("DIR: ").LogLine(ins.MainMod.Dir.FullName);
+                ins.Log("DIR: ").LogLine(ins.MainModDir);
                 ins.LogLine(e.ToString());
                 ins.ExeSelected(null);
                 return;
             }
-            
+
             TypeDefinition ModType = ins.MainMod.Module.GetType("ETGMod");
             if (ModType != null) {
                 MethodDefinition ModCctor = null;
@@ -313,14 +321,14 @@ namespace ETGModInstaller {
                         if (field.Name == "BaseVersion") {
                             int count = ((MethodReference) ModCctor.Body.Instructions[i - 1].Operand).Parameters.Count;
                             for (int ii = i - count - 1; ii < i - 1; ii++) {
-                                modVersion += MonoMod.MonoMod.GetInt(ModCctor.Body.Instructions[ii]);
+                                modVersion += ModCctor.Body.Instructions[ii].GetInt();
                                 if (ii < i - 2) {
                                     modVersion += ".";
                                 }
                             }
                         }
                         if (field.Name == "BaseTravisBuild") {
-                            int build = MonoMod.MonoMod.GetInt(ModCctor.Body.Instructions[i - 1]);
+                            int build = ModCctor.Body.Instructions[i - 1].GetInt();
                             if (build != 0) {
                                 modBuild = "-" + build;
                             }
@@ -335,17 +343,17 @@ namespace ETGModInstaller {
                     ins.ModVersion = modVersion + modBuild + modProfile;
                 }
             }
-            
-            ins.Invoke(delegate() {
+
+            ins.Invoke(delegate () {
                 ins.ExeStatusLabel.Text = "Enter The Gungeon";
                 ins.ExeStatusLabel.BackColor = Color.FromArgb(127, 63, 255, 91);
-                
+
                 if (ins.ModVersion != null) {
                     ins.ExeStatusLabel.Text += " [Mod:";
                     ins.ExeStatusLabel.Text += ins.ModVersion;
                     ins.ExeStatusLabel.Text += "]";
                 }
-                
+
                 if (suffix != null) {
                     ins.ExeStatusLabel.Text += suffix;
                 }
@@ -356,7 +364,7 @@ namespace ETGModInstaller {
                 OnExeSelected?.Invoke(true);
             });
         }
-        
+
         private static string getString(Collection<Instruction> instructions, int pos) {
             string s = null;
             for (; s == null && 0 <= pos; pos--) {
@@ -401,7 +409,7 @@ namespace ETGModInstaller {
                 return _platform;
             }
         }
-        
+
     }
 
     public enum ETGPlatform : int {
@@ -413,20 +421,19 @@ namespace ETGModInstaller {
         X86 = 0,
         X64 = 2,
 
-        NT   = 4,
+        NT = 4,
         Unix = 8,
 
         // Operating systems (OSes are always "and-equal" to OS)
-        Unknown   = OS |         16,
-        Windows   = OS | NT   |  32,
-        MacOS     = OS | Unix |  64,
-        Linux     = OS | Unix | 128,
+        Unknown = OS | 16,
+        Windows = OS | NT | 32,
+        MacOS = OS | Unix | 64,
+        Linux = OS | Unix | 128,
 
         // AMD64 (64bit) variants (always "and-equal" to X64)
         Unknown64 = Unknown | X64,
         Windows64 = Windows | X64,
-        MacOS64   = MacOS   | X64,
-        Linux64   = Linux   | X64,
+        MacOS64 = MacOS | X64,
+        Linux64 = Linux | X64,
     }
 }
- 
