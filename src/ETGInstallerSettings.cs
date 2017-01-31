@@ -29,8 +29,8 @@ namespace ETGModInstaller {
                     return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), CONFIG_NAME);
                 } else if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
                     string path = Path.Combine(home, $".{CONFIG_NAME}");
-                    if (Directory.Exists(Path.Combine(home, "/Library/Application Support/"))) {
-                        string dir = Path.Combine(home, "/Library/Application Support/ETGMod");
+                    if (Directory.Exists(Path.Combine(home, "Library", "Application Support"))) {
+                        string dir = Path.Combine(home, "Library", "Application Support", "ETGMod");
                         if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
                         path = Path.Combine(dir, CONFIG_NAME);
                     }

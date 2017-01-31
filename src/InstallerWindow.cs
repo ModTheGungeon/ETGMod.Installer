@@ -306,6 +306,8 @@ namespace ETGModInstaller {
             });
             AdvancedBinaryWrappedCheckbox.CheckedChanged += delegate (object senderCheck, EventArgs eCheck) {
                 ETGFinder.IsBinaryWrapped = AdvancedBinaryWrappedCheckbox.Checked;
+                ETGFinder.FindETG();
+                ETGInstallerSettings.Save();
             };
 
             RefreshManualPanel();
