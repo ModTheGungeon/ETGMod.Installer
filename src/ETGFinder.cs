@@ -114,7 +114,7 @@ namespace ETGModInstaller {
                             return null;
                         } else {
                             Console.WriteLine("At least Steam seems to be installed somewhere reasonable...");
-                            path = Path.Combine(path, "distributionX_Y/steam");
+                            path = Path.Combine(path, "ubuntu12_32/steam");
                         }
 
                     } else if (Platform.HasFlag(ETGPlatform.MacOS)) {
@@ -258,7 +258,7 @@ namespace ETGModInstaller {
 
             //We want to read the assembly now already. Writing is also handled manually.
             try {
-                ins.MainMod.Read(true);
+                ins.MainMod.Read(false);
             } catch (BadImageFormatException) {
                 //this is not the assembly we need...
                 ins.ExeSelected(null);
