@@ -358,7 +358,11 @@ namespace ETGModInstaller {
                 Input = File.OpenRead(ins.MainModIn)
             };
 #if DEBUG
-            if (LogPath == null) { ins.MainMod.Read(true); } else
+            if (LogPath == null) {
+                ins.MainMod.Read(false); // Read main module first
+                ins.MainMod.ReadMod(ins.MainModDir); // ... then mods
+                ins.MainMod.Read(true); // ... then all dependencies
+            } else
                 using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
                     using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
                         ins.MainMod.Logger = (string s) => ins.OnActivity();
@@ -366,7 +370,10 @@ namespace ETGModInstaller {
                         ins.MainMod.SkipOptimization = true;
                         // MonoMod.MonoModSymbolReader.MDBDEBUG = true;
 #endif
-                        ins.MainMod.Read(true);
+
+                        ins.MainMod.Read(false); // Read main module first
+                        ins.MainMod.ReadMod(ins.MainModDir); // ... then mods
+                        ins.MainMod.Read(true); // ... then all dependencies
 #if DEBUG
                         Mono.Cecil.TypeDefinition etgMod = ins.MainMod.Module.GetType("ETGMod");
                         if (etgMod != null) {

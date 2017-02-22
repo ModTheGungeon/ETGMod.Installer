@@ -176,6 +176,13 @@
   </ItemGroup>
   <!--MonoMod-->
   <ItemGroup>
+    <Compile Include="lib-projs\MonoMod\MonoMod\InlineRT\MMILExec.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\InlineRT\MMILProxy.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\InlineRT\MMILRT.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\InlineRT\MMILProxyManager.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\InlineRT\ReflectionHelper.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModHook.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModIfFlag.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModNoNew.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModOnPlatform.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModAdded.cs" />
@@ -185,7 +192,7 @@
     <Compile Include="lib-projs\MonoMod\MonoMod\MonoModExt.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\Platform.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\PlatformHelper.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\Program.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\StringInjectExtension.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModIgnore.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModRemove.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\MonoModReplace.cs" />
