@@ -314,6 +314,7 @@ namespace ETGModInstaller {
                 Dock = DockStyle.Fill,
                 AutoScroll = true
             });
+
             AdvancedPanel.Controls.Add(AdvancedInfoLabel = new Label() {
                 Text = "Note: This isn't where you install mods!",
                 ImageAlign = ContentAlignment.MiddleCenter,
@@ -444,6 +445,8 @@ namespace ETGModInstaller {
             int width = VersionTabs.Width - SystemInformation.VerticalScrollBarWidth;
 
             int y = 0;
+            AdvancedInfoLabel.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
+
             for (int i = 0; i < AdvancedPathBoxes.Count; i++) {
                 TextBox pathBox = AdvancedPathBoxes[i];
                 Button removeButton = AdvancedRemoveButtons[i];
@@ -460,7 +463,6 @@ namespace ETGModInstaller {
                 }
             }
 
-            AdvancedInfoLabel.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
             AdvancedAddButton.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
             AdvancedLabel.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
             AdvancedShowLogOnInstallCheckbox.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
