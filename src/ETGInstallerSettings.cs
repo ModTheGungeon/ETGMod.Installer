@@ -74,6 +74,9 @@ namespace ETGModInstaller {
 
             OnLoad["etgversion"] = (s) => ETGFinder.VersionLastRun = s;
             OnSave["etgversion"] = () => ETGFinder.Version;
+
+            OnLoad["showlogoninstall"] = (s) => InstallerWindow.Instance.AdvancedShowLogOnInstallCheckbox.Checked = bool.Parse(s);
+            OnSave["showlogoninstall"] = () => InstallerWindow.Instance.AdvancedShowLogOnInstallCheckbox.Checked.ToString();
         }
 
         public static void SetAdvanced(this InstallerWindow ins, string[] paths) {

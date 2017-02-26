@@ -46,14 +46,28 @@ namespace ETGModInstaller {
         public List<TextBox> AdvancedPathBoxes = new List<TextBox>();
         public List<Button> AdvancedRemoveButtons = new List<Button>();
         public Button AdvancedAddButton;
+        public Button ViewLogButton;
         public Label AdvancedLabel;
+        public Label AdvancedInfoLabel;
+        public CheckBox AdvancedShowLogOnInstallCheckbox;
         public CheckBox AdvancedAutoRunCheckbox;
         public CheckBox AdvancedOfflineCheckbox;
         public CheckBox AdvancedBinaryWrappedCheckbox;
         public Button InstallButton;
         public Button UninstallButton;
         public CustomProgress Progress;
+        public PictureBox RobotPictureBox;
 
+        public Image RobotImageIdle;
+        public Image RobotImageInstalling;
+        public Image RobotImageError;
+        public Image RobotImageFinished;
+
+        public bool ShowLogOnInstall {
+            get {
+                return AdvancedShowLogOnInstallCheckbox.Checked;
+            }
+        }
         public int AddIndex = 0;
         public int AddOffset = 0;
 
@@ -133,8 +147,19 @@ namespace ETGModInstaller {
             BackgroundImage = LoadAsset<Image>("background");
             BackgroundImageLayout = ImageLayout.Center;
 
+            RobotImageIdle = LoadAsset<Image>("icons.idle");
+            RobotImageInstalling = LoadAsset<Image>("ETGMod.Installer.Assets.icons.installing.gif", true);
+            RobotImageError = LoadAsset<Image>("ETGMod.Installer.Assets.icons.error.gif", true);
+            RobotImageFinished = LoadAsset<Image>("ETGMod.Installer.Assets.icons.finished.gif", true);
+
+            Controls.Add(RobotPictureBox = new PictureBox() {
+                BackColor = Color.Transparent,
+                Image = RobotImageIdle,
+                Bounds = new Rectangle(150, 100, RobotImageIdle.Width, RobotImageIdle.Height)
+            });
+
             //ShuffleIconColors();
-            Icon = LoadAsset<Icon>("icons.main");
+            Icon = LoadAsset<Icon>("icons.icon");
 
             ResetSize();
             SizeChanged += ResetSize;
@@ -149,7 +174,7 @@ namespace ETGModInstaller {
             });
 
             Controls.Add(LogBox = new RichTextBox() {
-                Bounds = new Rectangle(0, 0, 448, 358),
+                Bounds = new Rectangle(0, 0, 443, 315),
                 Font = GlobalFont,
                 ReadOnly = true,
                 Multiline = true,
@@ -163,6 +188,17 @@ namespace ETGModInstaller {
                 Text = "ETGMod Installer v" + Version + "\n",
                 Visible = false,
             });
+
+            Controls.Add(ViewLogButton = new Button() {
+                Text = "Show log",
+                Font = GlobalFont,
+                Bounds = new Rectangle(0, 316, 442, 40),
+                Visible = true
+            });
+
+            ViewLogButton.Click += delegate (object sender, EventArgs e) {
+                ToggleLog();
+            };
 
             Controls.Add(Progress = new CustomProgress() {
                 Bounds = new Rectangle(448, 313, 312, 24),
@@ -217,7 +253,10 @@ namespace ETGModInstaller {
                 Text = "Step 3: Install ETGMod",
                 Enabled = false
             });
-            InstallButton.Click += (object senderClick, EventArgs eClick) => Task.Run((Action) this.Install);
+            InstallButton.Click += (object senderClick, EventArgs eClick) => {
+                if (ShowLogOnInstall) ShowLog();
+                Task.Run((Action)this.Install);
+            };
             Controls.Add(UninstallButton = new Button() {
                 Bounds = new Rectangle(InstallButton.Bounds.X + InstallButton.Bounds.Width, InstallButton.Bounds.Y, 32, InstallButton.Bounds.Height),
                 Font = GlobalFont,
@@ -225,6 +264,7 @@ namespace ETGModInstaller {
                 ImageAlign = ContentAlignment.MiddleCenter
             });
             UninstallButton.Click += (object senderClick, EventArgs eClick) => Task.Run(delegate () {
+                if (ShowLogOnInstall) ShowLog();
                 this.Uninstall();
                 this.ClearCache();
                 this.ExeSelected(ExePathBox.Text, " [just uninstalled]");
@@ -264,12 +304,20 @@ namespace ETGModInstaller {
                     APIModsList.SelectedIndices.Add(0);
                 }
             };
+            APIModsList.MultiColumn = false;
+            APIModsList.DrawMode = DrawMode.OwnerDrawFixed;
+            APIModsList.DrawItem += APIModsListDrawItem;
 
             VersionTabs.TabPages.Add(new TabPage("Advanced"));
             VersionTabs.TabPages[1].Controls.Add(AdvancedPanel = new Panel() {
                 Font = GlobalFont,
                 Dock = DockStyle.Fill,
                 AutoScroll = true
+            });
+            AdvancedPanel.Controls.Add(AdvancedInfoLabel = new Label() {
+                Text = "Note: This isn't where you install mods!",
+                ImageAlign = ContentAlignment.MiddleCenter,
+                TextAlign = ContentAlignment.MiddleCenter,
             });
             AdvancedPanel.Controls.Add(AdvancedAddButton = new Button() {
                 Font = GlobalFont,
@@ -290,6 +338,14 @@ namespace ETGModInstaller {
             if (ETGFinder.Platform.HasFlag(ETGPlatform.MacOS)) {
                 AdvancedAutoRunCheckbox.Text = "CLOSE Gungeon && run when mod installed";
             }
+            AdvancedPanel.Controls.Add(AdvancedShowLogOnInstallCheckbox = new CheckBox() {
+                Font = GlobalFont,
+                Text = "Automatically show log when installing",
+                TextAlign = ContentAlignment.MiddleCenter
+            });
+            AdvancedShowLogOnInstallCheckbox.CheckedChanged += delegate (object sender, EventArgs e) {
+                ETGInstallerSettings.Save();
+            };
             AdvancedPanel.Controls.Add(AdvancedOfflineCheckbox = new CheckBox() {
                 Font = GlobalFont,
                 Text = "Offline mode - only use the APIs here",
@@ -298,6 +354,7 @@ namespace ETGModInstaller {
             AdvancedOfflineCheckbox.CheckedChanged += delegate (object senderCheck, EventArgs eCheck) {
                 ETGModder.IsOffline = RepoHelper.IsOffline = AdvancedOfflineCheckbox.Checked;
                 DownloadModsList();
+                ETGInstallerSettings.Save();
             };
             AdvancedPanel.Controls.Add(AdvancedBinaryWrappedCheckbox = new CheckBox() {
                 Font = GlobalFont,
@@ -313,12 +370,41 @@ namespace ETGModInstaller {
             RefreshManualPanel();
         }
 
+        void APIModsListDrawItem(object sender, DrawItemEventArgs e) {
+            ListBox list = (ListBox)sender;
+            if (e.Index > -1) {
+                object item = list.Items[e.Index];
+                e.DrawBackground();
+                e.DrawFocusRectangle();
+                Brush brush = new SolidBrush(e.ForeColor);
+                SizeF size = e.Graphics.MeasureString(item.ToString(), e.Font);
+                e.Graphics.DrawString(item.ToString(), e.Font, brush, e.Bounds.Left + (e.Bounds.Width / 2 - size.Width / 2), e.Bounds.Top + (e.Bounds.Height / 2 - size.Height / 2));
+            }
+        }
+
         private void ResetSize(object sender = null, EventArgs e = null) {
             SizeChanged -= ResetSize;
 
             MinimumSize = Size = MaximumSize = BackgroundImage.Size + (ETGFinder.Platform.HasFlag(ETGPlatform.Windows) ? new Size(8, 8) : new Size());
 
             SizeChanged += ResetSize;
+        }
+
+        public void ShowLog() {
+            if (!LogBox.Visible) ToggleLog();
+        }
+
+        public void HideLog() {
+            if (LogBox.Visible) ToggleLog();
+        }
+
+        public void ToggleLog() {
+            LogFlush();
+            LogBox.Visible = !LogBox.Visible;
+            RobotPictureBox.Visible = !LogBox.Visible;
+
+            if (LogBox.Visible) ViewLogButton.Text = "Hide log";
+            else ViewLogButton.Text = "Show log";
         }
 
         public void AddManualPathRows(string[] paths) {
@@ -374,8 +460,10 @@ namespace ETGModInstaller {
                 }
             }
 
+            AdvancedInfoLabel.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
             AdvancedAddButton.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
             AdvancedLabel.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
+            AdvancedShowLogOnInstallCheckbox.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
             AdvancedAutoRunCheckbox.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
             AdvancedOfflineCheckbox.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
             AdvancedBinaryWrappedCheckbox.Bounds = new Rectangle(0, y, width - 8, 24); y += 24;
@@ -540,7 +628,6 @@ namespace ETGModInstaller {
                 logScheduled.RemoveAt(0);
             }
             Invoke(delegate () {
-                LogBox.Visible = true;
                 LogBox.Text += added;
                 LogBox.SelectionStart = LogBox.Text.Length;
                 LogBox.SelectionLength = 0;
@@ -666,7 +753,7 @@ namespace ETGModInstaller {
         }
 
         public void ShuffleIconColors() {
-            Icon origIcon = LoadAsset<Icon>("icons.main");
+            Icon origIcon = LoadAsset<Icon>("icons.icon");
             Bitmap bitmap = origIcon.ToBitmap();
 
             Dictionary<int, Color> map = new Dictionary<int, Color>();

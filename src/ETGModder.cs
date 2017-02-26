@@ -36,20 +36,24 @@ namespace ETGModInstaller {
         public static List<string> Blacklist = new List<string>();
 
         public static void Install(this InstallerWindow ins) {
+            ins.RobotPictureBox.Image = ins.RobotImageInstalling;
 #if DEBUG
             ins.Install_();
 #else
             try {
                 ins.Install_();
             } catch (Exception e) {
+                ins.RobotPictureBox.Image = ins.RobotImageError;
+                ins.ViewLogButton.Text = "ERROR! Click here to get the log!";
                 ins.LogLine(e.ToString());
+                return;
             }
 #endif
+            ins.RobotPictureBox.Image = ins.RobotImageFinished;
         }
 
         private static void Install_(this InstallerWindow ins) {
             ins
-                .Invoke(() => ins.LogBox.Visible = true)
                 .Invoke(() => ExePath = ins.ExePathBox.Text)
                 .Invoke(() => AutoRun = ins.AdvancedAutoRunCheckbox.Checked)
                 .Invoke(ETGInstallerSettings.Save)

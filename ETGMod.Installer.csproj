@@ -39,6 +39,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="src\ConfigParser\Lexer.cs" />
     <Compile Include="src\ConfigParser\Parser.cs" />
+    <Compile Include="src\InstallerWindow.cs">
+      <SubType>Form</SubType>
+      <LogicalName>ETGMod.Installer.src.InstallerWindow.cs</LogicalName>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System">
@@ -64,9 +68,6 @@
     <Compile Include="src\BinaryHelper.cs" />
     <Compile Include="src\DeobfuscatorExt.cs" />
     <Compile Include="src\ETGInstallerSettings.cs" />
-    <Compile Include="src\InstallerWindow.cs">
-      <SubType>Form</SubType>
-    </Compile>
     <Compile Include="src\CustomControls.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -76,10 +77,16 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\background.png" />
-    <EmbeddedResource Include="Assets\icons\main.png" />
+    <EmbeddedResource Include="Assets\icons\icon.png" />
     <EmbeddedResource Include="Assets\icons\main-large.png" />
     <EmbeddedResource Include="Assets\icons\open.png" />
     <EmbeddedResource Include="Assets\icons\uninstall.png" />
+    <EmbeddedResource Include="Assets\icons\main-large.gif" />
+    <EmbeddedResource Include="Assets\icons\main.gif" />
+    <EmbeddedResource Include="Assets\icons\idle.png" />
+    <EmbeddedResource Include="Assets\icons\installing.gif" />
+    <EmbeddedResource Include="Assets\icons\error.gif" />
+    <EmbeddedResource Include="Assets\icons\finished.gif" />
   </ItemGroup>
   <!--cecil-->
   <ItemGroup>
