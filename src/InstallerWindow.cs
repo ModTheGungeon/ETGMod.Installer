@@ -241,7 +241,7 @@ namespace ETGModInstaller {
             Add(new Label() {
                 Font = GlobalFont,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Text = "Step 2: Choose your API mods",
+                Text = "Step 2: Choose your backends",
                 BackColor = Color.Transparent,
                 ForeColor = Color.Black
             });
@@ -292,7 +292,7 @@ namespace ETGModInstaller {
                 };
             }
 
-            VersionTabs.TabPages.Add(new TabPage("API Mods"));
+            VersionTabs.TabPages.Add(new TabPage("Backends"));
             VersionTabs.TabPages[0].Controls.Add(APIModsList = new ListBox() {
                 Font = GlobalFont,
                 Dock = DockStyle.Fill,
