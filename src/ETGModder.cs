@@ -36,20 +36,20 @@ namespace ETGModInstaller {
         public static List<string> Blacklist = new List<string>();
 
         public static void Install(this InstallerWindow ins) {
-            ins.RobotPictureBox.Image = ins.RobotImageInstalling;
+            ins.ChangeRobot(ins.RobotImageInstalling);
 #if DEBUG
             ins.Install_();
 #else
             try {
                 ins.Install_();
             } catch (Exception e) {
-                ins.RobotPictureBox.Image = ins.RobotImageError;
-                ins.ViewLogButton.Text = "ERROR! Click here to get the log!";
+                ins.ChangeRobot(ins.RobotImageError);
+                ins.Invoke(() => ins.ViewLogButton.Text = "ERROR! Click here to get the log!");
                 ins.LogLine(e.ToString());
                 return;
             }
 #endif
-            ins.RobotPictureBox.Image = ins.RobotImageFinished;
+            ins.ChangeRobot(ins.RobotImageFinished);
         }
 
         private static void Install_(this InstallerWindow ins) {
@@ -94,6 +94,11 @@ namespace ETGModInstaller {
             } else {
                 ins.Uninstall();
             }
+
+            // We need to reload the main dependencies anyway.
+            // As they've been patched, Assembly-CSharp.dll will otherwise refer to the .mm assemblies.
+            // And as their dependencies get patched, we need to actually unload their symbol readers here.
+            ins.MainMod?.Dispose();
 
             ins.Backup("UnityEngine.dll");
             ins.Backup("Assembly-CSharp.dll");
@@ -228,11 +233,6 @@ namespace ETGModInstaller {
 
             ins.PatchExe();
 
-            // We need to reload the main dependencies anyway.
-            // As they've been patched, Assembly-CSharp.dll will otherwise refer to the .mm assemblies.
-            // And as their dependencies get patched, we need to actually unload their symbol readers here.
-            ins.MainMod.Dispose();
-
             if (!ins.Mod("UnityEngine.dll")) {
                 OnInstalled?.Invoke(false);
                 return;
@@ -359,8 +359,9 @@ namespace ETGModInstaller {
             ins.LogLine("Reloading Assembly-CSharp.dll");
             ins.SetProgress("Reloading Assembly-CSharp.dll", files.Length);
             ins.MainMod = new MonoModder() {
-                Input = File.OpenRead(ins.MainModIn)
+                InputPath = ins.MainModIn
             };
+            ins.MainMod.SetupETGModder();
 #if DEBUG
             if (LogPath == null) {
                 ins.MainMod.Read(false); // Read main module first
@@ -731,9 +732,10 @@ namespace ETGModInstaller {
             string inPath = Path.Combine(ins.MainModDir, file);
             string outPath = Path.Combine(ins.MainModDir, file + ".tmp.dll");
             MonoModder monomod = new MonoModder() {
-                Input = File.OpenRead(inPath),
-                Output = File.OpenWrite(outPath)
+                InputPath = inPath,
+                OutputPath = outPath
             };
+            monomod.SetupETGModder();
 #if DEBUG
             monomod.SkipOptimization = true;
 #endif
@@ -869,6 +871,12 @@ namespace ETGModInstaller {
                 }
             }
             return true;
+        }
+
+        public static void SetupETGModder(this MonoModder mod) {
+            mod.ReaderParameters.ReadSymbols = false;
+            mod.WriterParameters.WriteSymbols = false;
+            mod.WriterParameters.SymbolWriterProvider = null;
         }
 
     }

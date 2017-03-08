@@ -95,9 +95,11 @@ namespace ETGModInstaller {
                                 p.Dispose();
                             }
 
-                            if (path.Contains("cef")) {
-                                path = Directory.GetParent(path).Parent.FullName;
+                            while (path.Contains("cef")) {
+                                path = Path.GetDirectoryName(path);
                             }
+                            if (Path.GetFileName(path) == "bin")
+                                path = Path.Combine(path, "steam.exe");
                         } catch (Exception) {
                             //probably the service acting up, a process quitting or bitness mismatch
                             p.Dispose();
@@ -247,14 +249,11 @@ namespace ETGModInstaller {
                 return;
             }
             ins.MainMod = new MonoModder() {
-                Input = File.OpenRead(ins.MainModIn = path)
+                InputPath = ins.MainModIn = path
                 // Output set when actually patching
             };
+            ins.MainMod.SetupETGModder();
             ins.MainModDir = Directory.GetParent(ins.MainModIn).FullName;
-#if DEBUG
-            ins.MainMod.SkipOptimization = true;
-            // MonoMod.MonoModSymbolReader.MDBDEBUG = true;
-#endif
 
             //We want to read the assembly now already. Writing is also handled manually.
             try {

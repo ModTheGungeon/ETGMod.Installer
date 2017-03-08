@@ -58,10 +58,15 @@ namespace ETGModInstaller {
         public CustomProgress Progress;
         public PictureBox RobotPictureBox;
 
+        public Bitmap OrigIcon;
+
         public Image RobotImageIdle;
         public Image RobotImageInstalling;
         public Image RobotImageError;
         public Image RobotImageFinished;
+
+        // Reuse the same delegate instance for performance reasons.
+        public EventHandler OnRobotFrameChangedHandler;
 
         public bool ShowLogOnInstall {
             get {
@@ -81,6 +86,8 @@ namespace ETGModInstaller {
         public InstallerWindow() {
             Instance = this;
             HandleCreated += onHandleCreated;
+
+            OnRobotFrameChangedHandler = new EventHandler(OnRobotFrameChanged);
 
             OpenExeDialog = new OpenFileDialog() {
                 Title = "Select " + ETGFinder.MainName,
@@ -148,9 +155,9 @@ namespace ETGModInstaller {
             BackgroundImageLayout = ImageLayout.Center;
 
             RobotImageIdle = LoadAsset<Image>("icons.idle");
-            RobotImageInstalling = LoadAsset<Image>("ETGMod.Installer.Assets.icons.installing.gif", true);
-            RobotImageError = LoadAsset<Image>("ETGMod.Installer.Assets.icons.error.gif", true);
-            RobotImageFinished = LoadAsset<Image>("ETGMod.Installer.Assets.icons.finished.gif", true);
+            RobotImageInstalling = LoadAsset<Image>("icons.installing.gif");
+            RobotImageError = LoadAsset<Image>("icons.error.gif");
+            RobotImageFinished = LoadAsset<Image>("icons.finished.gif");
 
             Controls.Add(RobotPictureBox = new PictureBox() {
                 BackColor = Color.Transparent,
@@ -159,16 +166,25 @@ namespace ETGModInstaller {
             });
 
             //ShuffleIconColors();
-            Icon = LoadAsset<Icon>("icons.icon");
+            OrigIcon = LoadAsset<Bitmap>("icons.icon");
+            Icon = Icon.FromHandle(OrigIcon.GetHicon());
 
             ResetSize();
             SizeChanged += ResetSize;
+
+#if !DEBUG
+            Version = new Version(Version.Major, Version.Minor, Version.Build);
+#endif
 
             Controls.Add(new Label() {
                 Bounds = new Rectangle(448, 338, 308, 16),
                 Font = GlobalFont,
                 TextAlign = ContentAlignment.BottomRight,
+#if DEBUG
+                Text = "DEBUG " + Version.Revision,
+#else
                 Text = "v" + Version,
+#endif
                 BackColor = Color.Transparent,
                 ForeColor = Color.FromArgb(127, 0, 0, 0)
             });
@@ -406,6 +422,21 @@ namespace ETGModInstaller {
 
             if (LogBox.Visible) ViewLogButton.Text = "Hide log";
             else ViewLogButton.Text = "Show log";
+        }
+
+        public void ChangeRobot(Image img) {
+            if (InvokeRequired) {
+                Invoke(() => ChangeRobot(img));
+                return;
+            }
+
+            ImageAnimator.StopAnimate(RobotPictureBox.Image, OnRobotFrameChangedHandler);
+            RobotPictureBox.Image = img;
+            ImageAnimator.Animate(RobotPictureBox.Image, OnRobotFrameChangedHandler);
+        }
+
+        public void OnRobotFrameChanged(object sender, EventArgs args) {
+            RobotPictureBox.Invalidate();
         }
 
         public void AddManualPathRows(string[] paths) {
@@ -755,28 +786,26 @@ namespace ETGModInstaller {
         }
 
         public void ShuffleIconColors() {
-            Icon origIcon = LoadAsset<Icon>("icons.icon");
-            Bitmap bitmap = origIcon.ToBitmap();
-
-            Dictionary<int, Color> map = new Dictionary<int, Color>();
-            Random rand = new Random();
-            for (int y = 0; y < bitmap.Height; y++) {
-                for (int x = 0; x < bitmap.Width; x++) {
-                    Color co = bitmap.GetPixel(x, y);
-                    Color cn;
-                    if (!map.TryGetValue(co.ToArgb(), out cn)) {
-                        cn = Color.FromArgb(co.A, rand.Next(255), rand.Next(255), rand.Next(255));
-                        map[co.ToArgb()] = cn;
+            using (Bitmap bitmap = new Bitmap(OrigIcon)) {
+                Dictionary<int, Color> map = new Dictionary<int, Color>();
+                Random rand = new Random();
+                for (int y = 0; y < bitmap.Height; y++) {
+                    for (int x = 0; x < bitmap.Width; x++) {
+                        Color co = bitmap.GetPixel(x, y);
+                        Color cn;
+                        if (!map.TryGetValue(co.ToArgb(), out cn)) {
+                            cn = Color.FromArgb(co.A, rand.Next(255), rand.Next(255), rand.Next(255));
+                            map[co.ToArgb()] = cn;
+                        }
+                        bitmap.SetPixel(x, y, cn);
                     }
-                    bitmap.SetPixel(x, y, cn);
                 }
-            }
 
-            Icon newIcon = Icon.FromHandle(bitmap.GetHicon());
-            Icon = newIcon;
-            bitmap.Dispose();
-            origIcon.Dispose();
-            newIcon.Dispose();
+                Icon newIcon = Icon.FromHandle(bitmap.GetHicon());
+                Icon oldIcon = Icon;
+                Icon = newIcon;
+                oldIcon.Dispose();
+            }
         }
 
         private int activity = 0;
@@ -799,13 +828,20 @@ namespace ETGModInstaller {
             Type t = typeof(T);
 
             if (t == typeof(Image) || t == typeof(Bitmap)) {
-                using (Stream s = assembly.GetManifestResourceStream(fullPath ? name : "ETGMod.Installer.Assets." + name + ".png")) {
-                    return Image.FromStream(s) as T;
+                // Stream must be kept open for the lifetime of the image!
+                if (name.EndsWith(".gif")) {
+                    return Image.FromStream(assembly.GetManifestResourceStream(fullPath ? name : "ETGMod.Installer.Assets." + name)) as T;
+                }
+                using (Stream s = assembly.GetManifestResourceStream(fullPath ? name : "ETGMod.Installer.Assets." + name + ".png"))
+                using (Image src = Image.FromStream(s)) {
+                    return new Bitmap(src) as T;
                 }
             }
 
             if (t == typeof(Icon)) {
-                return Icon.FromHandle(LoadAsset<Bitmap>(name, fullPath).GetHicon()) as T;
+                using (Bitmap img = LoadAsset<Bitmap>(name, fullPath)) {
+                    return Icon.FromHandle(img.GetHicon()) as T;
+                }
             }
 
             if (t == typeof(PrivateFontCollection)) {
