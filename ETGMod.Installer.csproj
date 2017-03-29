@@ -205,7 +205,11 @@
     <Compile Include="lib-projs\MonoMod\MonoMod\DebugIL\*.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\Helpers\*.cs" />
     <Compile Include="lib-projs\MonoMod\MonoMod\Modifiers\*.cs" />
-    <Compile Include="lib-projs\MonoMod\MonoMod\*.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\DebugSymbolFormat.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModder.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\MonoModExt.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\Platform.cs" />
+    <Compile Include="lib-projs\MonoMod\MonoMod\PlatformHelper.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
