@@ -364,21 +364,20 @@ namespace ETGModInstaller {
             ins.MainMod.SetupETGModder();
 #if DEBUG
             if (LogPath == null) {
-                ins.MainMod.Read(false); // Read main module first
+                ins.MainMod.Read(); // Read main module first
                 ins.MainMod.ReadMod(ins.MainModDir); // ... then mods
-                ins.MainMod.Read(true); // ... then all dependencies
+                ins.MainMod.MapDependencies(); // ... then all dependencies
             } else
                 using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
                     using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
                         ins.MainMod.Logger = (string s) => ins.OnActivity();
                         ins.MainMod.Logger += (string s) => streamWriter.WriteLine(s);
-                        ins.MainMod.SkipOptimization = true;
                         // MonoMod.MonoModSymbolReader.MDBDEBUG = true;
 #endif
 
-                        ins.MainMod.Read(false); // Read main module first
+                        ins.MainMod.Read(); // Read main module first
                         ins.MainMod.ReadMod(ins.MainModDir); // ... then mods
-                        ins.MainMod.Read(true); // ... then all dependencies
+                        ins.MainMod.MapDependencies(); // ... then all dependencies
 #if DEBUG
                         Mono.Cecil.TypeDefinition etgMod = ins.MainMod.Module.GetType("ETGMod");
                         if (etgMod != null) {
@@ -736,9 +735,6 @@ namespace ETGModInstaller {
                 OutputPath = outPath
             };
             monomod.SetupETGModder();
-#if DEBUG
-            monomod.SkipOptimization = true;
-#endif
             using (FileStream fileStream = File.Open(LogPath, FileMode.Append)) {
                 using (StreamWriter streamWriter = new StreamWriter(fileStream)) {
                     monomod.Logger = (string s) => ins.OnActivity();
@@ -755,9 +751,9 @@ namespace ETGModInstaller {
                     RETRY:
                     try {
 #endif
-                        monomod.Read(false); // Read main module first
+                        monomod.Read(); // Read main module first
                         monomod.ReadMod(Directory.GetParent(inPath).FullName); // ... then mods
-                        monomod.Read(true); // ... then all dependencies
+                        monomod.MapDependencies(); // ... then all dependencies
                         monomod.AutoPatch(); // Patch,
                         monomod.Write(); // and write.
                         monomod.Dispose(); // Finally, dispose, because file access happens now.
