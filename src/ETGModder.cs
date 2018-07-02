@@ -228,7 +228,7 @@ namespace ETGModInstaller {
             ins.LogLine("yourself a coffee in the meantime - it doesn't get stuck.");
             ins.LogLine("It may *crash*, though - and in this case, debug stuff appears");
             ins.LogLine("here. Please put that debug stuff onto http://pastebin.com/ and");
-            ins.LogLine("send it to @0x0ade on Twitter or the #modding channel in Discord.");
+            ins.LogLine("send it to the #modding channel in https://discord.gg/etg");
             ins.LogLine();
 
             ins.PatchExe();
@@ -248,8 +248,8 @@ namespace ETGModInstaller {
             ins.LogLine("You should see [just installed]. Feel free to start EtG.");
             ins.LogLine("If EtG crashes with ETGMod, go to the EtG folder (that one");
             ins.Log("where ").Log(ETGFinder.MainName).LogLine(" is, basically the path at the top-right),");
-            ins.LogLine("then go to EtG_Data (that scary folder with many files),");
-            ins.LogLine("upload output_log.txt somewhere and give it @0x0ade.");
+            ins.LogLine("then go to EtG_Data (that scary folder with many files) and");
+            ins.LogLine("upload output_log.txt to #modding in https://discord.gg/etg");
             ins.LogLine("Good luck - Have fun!");
             ins.ExeSelected(ExePath, " [just installed]");
 
