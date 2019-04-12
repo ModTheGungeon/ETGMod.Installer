@@ -100,7 +100,7 @@ namespace ETGModInstaller {
             // And as their dependencies get patched, we need to actually unload their symbol readers here.
             ins.MainMod?.Dispose();
 
-            ins.Backup("UnityEngine.dll");
+            ins.Backup("UnityEngine.CoreModule.dll");
             ins.Backup("Assembly-CSharp.dll");
             ins.BackupETG();
 
@@ -233,7 +233,7 @@ namespace ETGModInstaller {
 
             ins.PatchExe();
 
-            if (!ins.Mod("UnityEngine.dll")) {
+            if (!ins.Mod("UnityEngine.CoreModule.dll")) {
                 OnInstalled?.Invoke(false);
                 return;
             }
