@@ -20,7 +20,9 @@ namespace ETGModInstaller {
 
         public static string LogPath;
         public static string ExePath;
+        public static string WindowsUnityPlayerPath;
         public static string ExeBackupPath;
+        public static string WindowsUnityPlayerBackupPath;
         public static bool AutoRun;
 
         public static List<Tuple<byte[], byte[]>> NativeResourceReplacementMap = GenOrigReplacementMap(
@@ -62,6 +64,10 @@ namespace ETGModInstaller {
 
             if (ETGFinder.IsBinaryWrapped) {
                 ExePath = Path.Combine(Directory.GetParent(ExePath).FullName, ETGFinder.MainName);
+            }
+
+            if (ETGFinder.Platform.HasFlag(ETGPlatform.Windows)) {
+                WindowsUnityPlayerPath = ExePath.Replace(ETGFinder.MainName, "UnityPlayer.dll");
             }
 
             Directory.SetCurrentDirectory(ins.MainModDir);
@@ -294,7 +300,16 @@ namespace ETGModInstaller {
             if (File.Exists(ExeBackupPath)) {
                 File.Delete(ExeBackupPath);
             }
-            File.Move(ExePath, ExeBackupPath);
+            File.Copy(ExePath, ExeBackupPath);
+
+            if (ETGFinder.Platform.HasFlag(ETGPlatform.Windows)) {
+                ins.Log("Backing up: ").LogLine("UnityPlayer.dll");
+                WindowsUnityPlayerBackupPath = Path.Combine(pathBackup, "UnityPlayer.dll");
+                if (File.Exists(WindowsUnityPlayerBackupPath)) {
+                    File.Delete(WindowsUnityPlayerBackupPath);
+                }
+                File.Move(WindowsUnityPlayerPath, WindowsUnityPlayerBackupPath);
+            }
             return true;
         }
 
@@ -343,6 +358,17 @@ namespace ETGModInstaller {
                 File.Move(etgBackup, ExePath);
             } else {
                 ins.Log("WARNING: Backup not found for ").LogLine(ETGFinder.MainName);
+            }
+
+            if (ETGFinder.Platform.HasFlag(ETGPlatform.Windows)) {
+                var unityBackup = Path.Combine(pathBackup, "UnityPlayer.dll");
+                ins.Log("Reverting: ").LogLine("UnityPlayer.dll");
+                if (File.Exists(unityBackup)) {
+                    File.Delete(WindowsUnityPlayerPath);
+                    File.Move(unityBackup, WindowsUnityPlayerPath);
+                } else {
+                    ins.Log("WARNING: Backup not found for ").LogLine("UnityPlayer.dll");
+                }
             }
 
             files = Directory.GetFiles(pathBackup);
@@ -700,8 +726,16 @@ namespace ETGModInstaller {
         }
 
         public static void PatchExe(this InstallerWindow ins) {
-            using (FileStream fo = File.OpenWrite(ExePath)) {
-                using (FileStream fi = File.OpenRead(ExeBackupPath)) {
+            var fo_path = ExePath;
+            var fi_path = ExeBackupPath;
+
+            if (ETGFinder.Platform.HasFlag(ETGPlatform.Windows)) {
+                fo_path = WindowsUnityPlayerPath;
+                fi_path = WindowsUnityPlayerBackupPath;
+            }
+
+            using (FileStream fo = File.OpenWrite(fo_path)) {
+                using (FileStream fi = File.OpenRead(fi_path)) {
                     using (BinaryWriter bo = new BinaryWriter(fo)) {
                         using (BinaryReader bi = new BinaryReader(fi)) {
                             ins.PatchExe(bi, bo);
